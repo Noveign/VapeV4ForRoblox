@@ -7035,6 +7035,53 @@ vape.Categories.Combat:CreateModule({
 })
 
 run(function()
+	local GrassCustomizer = vape.Categories.Render:CreateModule({
+		Name = "GrassCustomizer",
+		Description = "Change grass material"
+	})
+
+	local allMaterials = {}
+	for _, mat in ipairs(Enum.Material:GetEnumItems()) do
+		table.insert(allMaterials, mat.Name)
+	end
+
+	GrassCustomizer:CreateDropdown({
+		Name = "Material",
+		List = allMaterials,
+		Default = "Grass",
+		Function = function(val)
+			local field = workspace:FindFirstChild("gameArea")
+				and workspace.gameArea:FindFirstChild("Grass")
+				and workspace.gameArea.Grass:FindFirstChild("FieldBase")
+
+			if field and typeof(Enum.Material[val]) == "EnumItem" then
+				field.Material = Enum.Material[val]
+			end
+		end
+	})
+
+	GrassCustomizer:CreateSlider({
+		Name = "Reflectance",
+		Min = 0,
+		Max = 1,
+		Default = 0,
+		Decimal = 100,
+		Suffix = function(val)
+			return tostring(val)
+		end,
+		Function = function(val)
+			local field = workspace:FindFirstChild("gameArea")
+				and workspace.gameArea:FindFirstChild("Grass")
+				and workspace.gameArea.Grass:FindFirstChild("FieldBase")
+
+			if field and field:IsA("BasePart") then
+				field.Reflectance = val
+			end
+		end
+	})
+end)
+																								
+run(function()
 	local Freecam
 	local Value
 	local randomkey, module, old = httpService:GenerateGUID(false)
