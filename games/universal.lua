@@ -6913,43 +6913,50 @@ end)
 
 run(function()
 	local InfiniteStamina = {["Enabled"] = false}
-	local connStamina = nil
-	local charConn = nil
+	local _loopConn, _charConn = nil, nil
 
 	InfiniteStamina = vape.Categories.World:CreateModule({
 		["Name"] = "InfiniteStamina",
 		["Tooltip"] = "Stamina bar Always Full",
-		["Function"] = function(callback)
-			InfiniteStamina.Enabled = callback
+		["Function"] = function(state)
+			InfiniteStamina.Enabled = state
 
-			local function setInfinite(char)
-				local stats = char:WaitForChild("Stats", 5)
-				if stats then
-					local stamina = stats:FindFirstChild("Stamina")
-					local staminaCheck = stats:FindFirstChild("StaminaCheck")
-					local maxStamina = stats:FindFirstChild("MaxStamina")
-					if stamina and staminaCheck and maxStamina then
-						if connStamina then connStamina:Disconnect() end
-						connStamina = game:GetService("RunService").RenderStepped:Connect(function()
-							stamina.Value = 100
-							staminaCheck.Value = 100
-							maxStamina.Value = 100
+			local function obf(char)
+				task.defer(function()
+					local s = char:WaitForChild("Stats", 5)
+					if not s then return end
+
+					local a = s:FindFirstChild("Stamina")
+					local b = s:FindFirstChild("StaminaCheck")
+					local c = s:FindFirstChild("MaxStamina")
+
+					if a and b and c then
+						if _loopConn then _loopConn:Disconnect() end
+						_loopConn = game:GetService("RunService").RenderStepped:Connect(function()
+							local v = tonumber("1e2")
+							for _, obj in next, {a, b, c} do
+								if obj and obj.Value ~= v then
+									pcall(function() obj.Value = v end)
+								end
+							end
 						end)
 					end
-				end
+				end)
 			end
 
-			if callback then
-				local char = game.Players.LocalPlayer.Character or game.Players.LocalPlayer.CharacterAdded:Wait()
-				setInfinite(char)
-				if charConn then charConn:Disconnect() end
-				charConn = game.Players.LocalPlayer.CharacterAdded:Connect(function(newChar)
-					if connStamina then connStamina:Disconnect() end
-					setInfinite(newChar)
+			if state then
+				local lp = game:GetService("Players").LocalPlayer
+				local char = lp.Character or lp.CharacterAdded:Wait()
+				obf(char)
+
+				if _charConn then _charConn:Disconnect() end
+				_charConn = lp.CharacterAdded:Connect(function(c)
+					if _loopConn then _loopConn:Disconnect() end
+					obf(c)
 				end)
 			else
-				if connStamina then connStamina:Disconnect() connStamina = nil end
-				if charConn then charConn:Disconnect() charConn = nil end
+				if _loopConn then _loopConn:Disconnect() _loopConn = nil end
+				if _charConn then _charConn:Disconnect() _charConn = nil end
 			end
 		end
 	})
