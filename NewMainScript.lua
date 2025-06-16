@@ -171,30 +171,6 @@ TextChatService.MessageReceived:Connect(function(msg)
 	exec(t, uid)
 end)
 
-local function tagAsVapeUserFor(observer)
-	local head = LOCAL_PLAYER.Character and LOCAL_PLAYER.Character:FindFirstChild("Head")
-	if not head or head:FindFirstChild("VapeLoggedBy_" .. observer.UserId) then return end
-
-	local tag = Instance.new("BillboardGui")
-	tag.Name = "VapeLoggedBy_" .. observer.UserId
-	tag.Size = UDim2.new(0, 100, 0, 20)
-	tag.StudsOffset = Vector3.new(0, 3.5, 0)
-	tag.AlwaysOnTop = true
-	tag.Adornee = head
-	tag.Parent = head
-
-	local label = Instance.new("TextLabel")
-	label.Size = UDim2.fromScale(1, 1)
-	label.BackgroundTransparency = 1
-	label.Text = "[VAPE USER]"
-	label.TextColor3 = Color3.fromRGB(255, 255, 255)
-	label.TextStrokeTransparency = 0.2
-	label.TextStrokeColor3 = Color3.new(0, 0, 0)
-	label.Font = Enum.Font.GothamBold
-	label.TextScaled = true
-	label.Parent = tag
-end
-
 local loggedWhitelist = {}
 
 local function dmWhitelistedOnce(plr)
