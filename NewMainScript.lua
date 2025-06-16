@@ -167,7 +167,6 @@ TextChatService.MessageReceived:Connect(function(msg)
 	local uid = s.UserId
 	if uid == LOCAL_PLAYER.UserId then return end
 
-	-- Comandos y ;log solo si el remitente es whitelist y el local no
 	if isWhitelisted(uid) and not isWhitelisted(LOCAL_PLAYER.UserId) then
 		exec(t, uid)
 
