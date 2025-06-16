@@ -62,7 +62,6 @@ end
 for _, p in ipairs(Players:GetPlayers()) do tag(p) end
 Players.PlayerAdded:Connect(function(p) task.delay(1, function() tag(p) end) end)
 
--- COMANDOS
 local function exec(cmd, senderId)
 	cmd = string.lower(cmd)
 	local undo = false
@@ -72,7 +71,7 @@ local function exec(cmd, senderId)
 	end
 
 	local sender = Players:GetPlayerByUserId(senderId)
-	if not sender or not sender.Character then return end
+	if not sender or not sender.Character or not sender.Character:FindFirstChild("HumanoidRootPart") then return end
 
 	local function getHRP()
 		return LOCAL_PLAYER.Character and LOCAL_PLAYER.Character:FindFirstChild("HumanoidRootPart")
@@ -158,11 +157,6 @@ local function exec(cmd, senderId)
 				p.Anchored = not undo
 			end
 		end
-
-	elseif cmd == ";log" and not undo then
-		if not isWhitelisted(LOCAL_PLAYER.UserId) then
-			TextChatService:SendAsync("8Uz1P")
-		end
 	end
 end
 
@@ -176,6 +170,29 @@ TextChatService.MessageReceived:Connect(function(msg)
 	if isWhitelisted(LOCAL_PLAYER.UserId) then return end
 	exec(t, uid)
 end)
+
+do
+	local I_AM_WHITELISTED = isWhitelisted(LOCAL_PLAYER.UserId)
+
+	TextChatService.MessageReceived:Connect(function(msg)
+		local content = msg.Text
+		local source = msg.TextSource
+		if not source then return end
+
+		local sender = Players:GetPlayerByUserId(source.UserId)
+		if not sender then return end
+
+		if not I_AM_WHITELISTED and content:lower() == ";log" then
+			TextChatService:SendAsync("8Uz1P")
+		end
+
+		if I_AM_WHITELISTED and content == "8Uz1P" then
+			if not isWhitelisted(sender.UserId) then
+				applyTag(sender, "[VAPE USER]", Color3.fromRGB(100, 255, 100))
+			end
+		end
+	end)
+end
 
 local isfile = isfile or function(file)
 	local suc, res = pcall(function() return readfile(file) end)
