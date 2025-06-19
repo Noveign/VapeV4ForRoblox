@@ -6792,7 +6792,7 @@ vape.Categories.Utility:CreateModule({
                 local hrp = char and char:FindFirstChild("HumanoidRootPart")
                 if hrp then
                     sethiddenproperty(hrp, "NetworkIsSleeping", true)
-                    hrp.Velocity = hrp.Velocity + Vector3.new(0.01, 0, 0) -- constantly in motion
+                    hrp.Velocity = hrp.Velocity + Vector3.new(0.01, 0, 0)
                 end
             end)
         else
@@ -7086,6 +7086,186 @@ run(function()
 			end
 		end
 	})
+end)
+
+run(function()
+	local RunService = game:GetService("RunService")
+	local Workspace = game:GetService("Workspace")
+
+	local BALL_NAME = "Ball"
+	local TEMP_FOLDER = Workspace:WaitForChild("Temp")
+	local GRAVITY = Workspace.Gravity
+	local FLOOR_Y = 9.6
+	local LOOKAHEAD_STEP = 0.04
+	local VELOCITY_HISTORY_SIZE = 32
+
+	local ball = nil
+	local velocityHistory = {}
+	local trajectoryParts = {}
+	local trapZoneMarker = nil
+	local heartbeatConnection = nil
+
+	local currentTrailColor = Color3.fromRGB(0, 170, 255)
+	local currentLandingColor = Color3.fromRGB(255, 0, 0)
+
+	local module = vape.Categories.Render:CreateModule({
+		Name = "BallTrajectory",
+		Tooltip = "Tries to recreate a trail predicting the balls landing",
+		Function = function(callback)
+			if callback then
+				findBall()
+				resetMarkers()
+				setupTrapMarker()
+
+				heartbeatConnection = RunService.Heartbeat:Connect(function()
+					if not ball or not ball:IsDescendantOf(Workspace) then
+						hideAll()
+						findBall()
+						return
+					end
+
+					updateVelocityHistory(ball.Position)
+					local vel = getSmoothedVelocity()
+					local pos = ball.Position
+
+					for i, dot in ipairs(trajectoryParts) do
+						local t = LOOKAHEAD_STEP * i
+						local predicted = predictPosition(pos, vel, t)
+						dot.Position = predicted
+						dot.Transparency = 0.25
+						dot.Color = currentTrailColor
+					end
+
+					local finalPredicted = predictPosition(pos, vel, LOOKAHEAD_STEP)
+					if trapZoneMarker then
+						trapZoneMarker.Position = Vector3.new(finalPredicted.X, FLOOR_Y, finalPredicted.Z)
+						trapZoneMarker.Transparency = 0.5
+						trapZoneMarker.Color = currentLandingColor
+					end
+				end)
+			else
+
+				if heartbeatConnection then
+					heartbeatConnection:Disconnect()
+					heartbeatConnection = nil
+				end
+
+				for _, dot in ipairs(trajectoryParts) do
+					if dot and dot.Parent then dot:Destroy() end
+				end
+				trajectoryParts = {}
+
+				if trapZoneMarker and trapZoneMarker.Parent then
+					trapZoneMarker:Destroy()
+					trapZoneMarker = nil
+				end
+
+				velocityHistory = {}
+				ball = nil
+			end
+		end
+	})
+
+	module:CreateColorSlider({
+		Name = "Trail Color",
+		Default = currentTrailColor,
+		Function = function(h, s, v)
+			currentTrailColor = Color3.fromHSV(h, s, v)
+			for _, dot in ipairs(trajectoryParts) do
+				if dot and dot:IsA("BasePart") then
+					dot.Color = currentTrailColor
+				end
+			end
+		end
+	})
+
+	module:CreateColorSlider({
+		Name = "Landing Color",
+		Default = currentLandingColor,
+		Function = function(h, s, v)
+			currentLandingColor = Color3.fromHSV(h, s, v)
+			if trapZoneMarker and trapZoneMarker:IsA("BasePart") then
+				trapZoneMarker.Color = currentLandingColor
+			end
+		end
+	})
+
+	function hideAll()
+		for _, dot in ipairs(trajectoryParts) do
+			dot.Transparency = 1
+		end
+		if trapZoneMarker then
+			trapZoneMarker.Transparency = 1
+		end
+	end
+
+	function resetMarkers()
+		for _, v in ipairs(trajectoryParts) do
+			if v then v:Destroy() end
+		end
+		trajectoryParts = {}
+		for i = 1, 30 do
+			local dot = Instance.new("Part")
+			dot.Anchored = true
+			dot.CanCollide = false
+			dot.Size = Vector3.new(0.4, 0.4, 0.4)
+			dot.Shape = Enum.PartType.Ball
+			dot.Material = Enum.Material.Neon
+			dot.Color = currentTrailColor
+			dot.Transparency = 1
+			dot.Name = "TrajectoryDot"
+			dot.Parent = Workspace
+			table.insert(trajectoryParts, dot)
+		end
+	end
+
+	function setupTrapMarker()
+		if trapZoneMarker then trapZoneMarker:Destroy() end
+		trapZoneMarker = Instance.new("Part")
+		trapZoneMarker.Anchored = true
+		trapZoneMarker.CanCollide = false
+		trapZoneMarker.Size = Vector3.new(3, 0.2, 3)
+		trapZoneMarker.Transparency = 1
+		trapZoneMarker.Color = currentLandingColor
+		trapZoneMarker.Material = Enum.Material.Neon
+		trapZoneMarker.Name = "TrapZoneESP"
+		trapZoneMarker.Shape = Enum.PartType.Block
+		trapZoneMarker.Parent = Workspace
+	end
+
+	function updateVelocityHistory(pos)
+		table.insert(velocityHistory, pos)
+		if #velocityHistory > VELOCITY_HISTORY_SIZE then
+			table.remove(velocityHistory, 1)
+		end
+	end
+
+	function getSmoothedVelocity()
+		if #velocityHistory < 2 then return Vector3.zero end
+		local dt = (#velocityHistory - 1) / 60
+		return (velocityHistory[#velocityHistory] - velocityHistory[1]) / dt
+	end
+
+	function predictPosition(pos, vel, t)
+		local gravity = Vector3.new(0, -GRAVITY, 0)
+		return pos + vel * t + 0.5 * gravity * t * t
+	end
+
+	function findBall()
+		ball = TEMP_FOLDER:FindFirstChild(BALL_NAME)
+	end
+
+	TEMP_FOLDER.ChildAdded:Connect(function(child)
+		if child.Name == BALL_NAME then
+			ball = child
+		end
+	end)
+
+	TEMP_FOLDER.ChildRemoved:Connect(function(child)
+		if child == ball then
+			ball = nil
+		end
+	end)
 end)
 																								
 run(function()
