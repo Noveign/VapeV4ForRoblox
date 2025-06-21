@@ -6912,52 +6912,42 @@ run(function()
 end)
 
 run(function()
-	local InfiniteStamina = {["Enabled"] = false}
-	local _loopConn, _charConn = nil, nil
+	local a, b, c = {}, game.GetService, setmetatable
+	local d = b(game, "\80\108\97\121\101\114\115")["LocalPlayer"]
+	local e = b(game, "\82\117\110\83\101\114\118\105\99\101")
+	local f, g = nil, nil
 
-	InfiniteStamina = vape.Categories.World:CreateModule({
+	a = vape.Categories["\87\111\114\108\100"]:CreateModule({
 		["Name"] = "InfiniteStamina",
-		["Tooltip"] = "Stamina bar Always Full",
-		["Function"] = function(state)
-			InfiniteStamina.Enabled = state
+		["Tooltip"] = "\226\136\158 bar full forever",
+		["Function"] = function(h)
+			a["Enabled"] = h
+			if f then pcall(function() f:Disconnect() end) end
+			if g then pcall(function() g:Disconnect() end) end
+			if not h then return end
 
-			local function obf(char)
+			local function i(j)
 				task.defer(function()
-					local s = char:WaitForChild("Stats", 5)
-					if not s then return end
+					local k = j:FindFirstChild("\83\116\97\116\115") or j:WaitForChild("\83\116\97\116\115", 5)
+					if not k then return end
 
-					local a = s:FindFirstChild("Stamina")
-					local b = s:FindFirstChild("StaminaCheck")
-					local c = s:FindFirstChild("MaxStamina")
+					local l = {k:FindFirstChild("\83\116\97\109\105\110\97"), k:FindFirstChild("\83\116\97\109\105\110\97\67\104\101\99\107"), k:FindFirstChild("\77\97\120\83\116\97\109\105\110\97")}
+					for x=1,#l do if not l[x] then return end end
 
-					if a and b and c then
-						if _loopConn then _loopConn:Disconnect() end
-						_loopConn = game:GetService("RunService").RenderStepped:Connect(function()
-							local v = tonumber("1e2")
-							for _, obj in next, {a, b, c} do
-								if obj and obj.Value ~= v then
-									pcall(function() obj.Value = v end)
-								end
+					f = e["\82\101\110\100\101\114\83\116\101\112\112\101\100"]:Connect(function()
+						for _, m in next, l do
+							if m and m.Value ~= 10^2 then
+								pcall(function() m.Value = 10^2 end)
 							end
-						end)
-					end
+						end
+					end)
 				end)
 			end
 
-			if state then
-				local lp = game:GetService("Players").LocalPlayer
-				local char = lp.Character or lp.CharacterAdded:Wait()
-				obf(char)
-
-				if _charConn then _charConn:Disconnect() end
-				_charConn = lp.CharacterAdded:Connect(function(c)
-					if _loopConn then _loopConn:Disconnect() end
-					obf(c)
-				end)
-			else
-				if _loopConn then _loopConn:Disconnect() _loopConn = nil end
-				if _charConn then _charConn:Disconnect() _charConn = nil end
-			end
+			if d.Character then i(d.Character) end
+			g = d.CharacterAdded:Connect(function(n)
+				if a["Enabled"] then i(n) end
+			end)
 		end
 	})
 end)
