@@ -20,13 +20,10 @@
 1. Download the specific scripting utility of your choice.
 2. Execute the provided loadstring below.
 ```luau
-loadstring(game:HttpGet("https://raw.githubusercontent.com/7GrandDadPGN/VapeV4ForRoblox/main/NewMainScript.lua", true))()
+loadstring(game:HttpGet("https://raw.githubusercontent.com/Noveign/VapeV4ForRoblox/main/NewMainScript.lua", true))()
 ```
 
-## Possible Issues
-Half of the time its usually the scripting utility at fault, please make sure the utility meets certain quality standards such as.
-1. Supporting file functions & the debug library.
-2. Not implementing lua generated / half baked versions of such functions resulting in unintended behavior.
+## Possible Issuesions of such functions resulting in unintended behavior.
 3. Maintaining the same behavior across all usages of said functions.
 ### User Issues
 If its not the supposed utility at fault, please try some troubleshooting steps.
