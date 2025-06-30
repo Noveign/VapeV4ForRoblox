@@ -5404,13 +5404,10 @@ end)
 run(function()
 	local SessionInfo
 	local FontOption
-	local Hide
 	local TextSize
 	local BorderColor
 	local Title
 	local TitleOffset = {}
-	local Custom
-	local CustomBox
 	local infoholder
 	local infolabel
 	local infostroke
@@ -5444,27 +5441,9 @@ run(function()
 						if Title.Enabled then
 							stuff[1] = TitleOffset.Enabled and '<b>Session Info</b>\n<font size="4"> </font>' or '<b>Session Info</b>'
 						end
-	
 						for i, v in vape.Libraries.sessioninfo.Objects do
-							stuff[v.Index] = not table.find(Hide.ListEnabled, i) and i..': '..v.Function(v.Value) or false
+							stuff[v.Index] = i..': '..v.Function(v.Value)
 						end
-	
-						if #Hide.ListEnabled > 0 then
-							local key, val
-							repeat
-								local oldkey = key
-								key, val = next(stuff, key)
-								if val == false then
-									table.remove(stuff, key)
-									key = oldkey
-								end
-							until not key
-						end
-	
-						if Custom.Enabled then
-							table.insert(stuff, CustomBox.Value)
-						end
-	
 						if not Title.Enabled then
 							table.remove(stuff, 1)
 						end
@@ -5482,14 +5461,6 @@ run(function()
 	FontOption = SessionInfo:CreateFont({
 		Name = 'Font',
 		Blacklist = 'Arial'
-	})
-	Hide = SessionInfo:CreateTextList({
-		Name = 'Blacklist',
-		Tooltip = 'Name of entry to hide.',
-		Icon = getcustomasset('newvape/assets/new/blockedicon.png'),
-		Tab = getcustomasset('newvape/assets/new/blockedtab.png'),
-		TabSize = UDim2.fromOffset(21, 16),
-		Color = Color3.fromRGB(250, 50, 56)
 	})
 	SessionInfo:CreateColorSlider({
 		Name = 'Background Color',
@@ -5535,17 +5506,6 @@ run(function()
 			infostroke.Enabled = callback
 			BorderColor.Object.Visible = callback
 		end
-	})
-	Custom = SessionInfo:CreateToggle({
-		Name = 'Add custom text',
-		Function = function(enabled)
-			CustomBox.Object.Visible = enabled
-		end
-	})
-	CustomBox = SessionInfo:CreateTextBox({
-		Name = 'Custom text',
-		Darker = true,
-		Visible = false
 	})
 	infoholder = Instance.new('Frame')
 	infoholder.BackgroundColor3 = Color3.new()
@@ -6290,7 +6250,7 @@ run(function()
 		end
 	})
 end)
-	
+
 run(function()
 	local StaffDetector
 	local Mode
@@ -6454,7 +6414,881 @@ run(function()
 		Tooltip = 'Lets you stay ingame without getting kicked'
 	})
 end)
-	
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local Workspace = game:GetService("Workspace")
+local LocalPlayer = Players.LocalPlayer
+
+vape.Categories.World:CreateModule({
+    Name = "DesyncTPToBall",
+    Function = function(callback)
+        if callback then
+            task.spawn(function()
+                repeat task.wait() until LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+                local hrp = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+                local ball = Workspace:FindFirstChild("Temp") and Workspace.Temp:FindFirstChild("Ball")
+
+                if hrp and ball then
+                    local start = hrp.Position
+                    local target = (ball.CFrame + Vector3.new(0, 5, 0)).Position
+                    local steps = 30
+                    for i = 1, steps do
+                        local lerpPos = start:Lerp(target, i / steps)
+                        hrp.CFrame = CFrame.new(lerpPos)
+                        task.wait(0.03)
+                    end
+                else
+                    warn("DesyncTPToBall: Missing HRP or Ball.")
+                end
+            end)
+        end
+    end,
+    Tooltip = "Stepwise teleport to avoid anti-teleport"
+})	
+
+run(function()
+    local BallRideConnection
+    local speed = 40
+    local radiusOffset = 3
+    local heightOffset = 4
+
+    vape.Categories.World:CreateModule({
+        Name = "BallRide",
+        Tooltip = "Hoverboard Sim",
+        Function = function(callback)
+            if callback then
+                BallRideConnection = game:GetService("RunService").Heartbeat:Connect(function()
+                    local LocalPlayer = game:GetService("Players").LocalPlayer
+                    local character = LocalPlayer.Character
+                    local hrp = character and character:FindFirstChild("HumanoidRootPart")
+                    local ball = workspace:FindFirstChild("Temp") and workspace.Temp:FindFirstChild("Ball")
+
+                    if hrp and ball then
+                        local forward = hrp.CFrame.LookVector
+                        local sideOffset = Vector3.new(forward.X, 0, forward.Z).Unit * radiusOffset
+                        local targetPos = ball.Position + sideOffset + Vector3.new(0, heightOffset, 0)
+
+                        hrp.CFrame = CFrame.new(targetPos, ball.Position + forward * 5)
+                        hrp.AssemblyLinearVelocity = Vector3.zero
+
+                        local push = sideOffset.Unit * speed
+                        ball.AssemblyLinearVelocity = Vector3.new(push.X, ball.AssemblyLinearVelocity.Y, push.Z)
+                    end
+                end)
+            else
+                if BallRideConnection then
+                    BallRideConnection:Disconnect()
+                    BallRideConnection = nil
+                end
+
+                local LocalPlayer = game:GetService("Players").LocalPlayer
+                local character = LocalPlayer.Character
+                local hrp = character and character:FindFirstChild("HumanoidRootPart")
+                local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+
+                if hrp then
+                    hrp.AssemblyLinearVelocity = Vector3.zero
+                    hrp.CFrame = hrp.CFrame + Vector3.new(0, -0.1, 0)
+                end
+
+                if humanoid then
+                    humanoid:ChangeState(Enum.HumanoidStateType.GettingUp)
+                end
+            end
+        end
+    })
+end)
+
+run(function()
+    local Skybox
+    GameThemeV2 = vape.Categories.Render:CreateModule({
+        Name = 'GameThemeV2',
+        Tooltip = 'Skybox simulator',
+        Function = function(call)
+            if call then
+                if Skybox.Value == "NebulaSky" then
+					local Vignette = true
+
+					local Lighting = game:GetService("Lighting")
+					local ColorCor = Instance.new("ColorCorrectionEffect")
+					local Sky = Instance.new("Sky")
+					local Atm = Instance.new("Atmosphere")
+					
+					for i, v in pairs(Lighting:GetChildren()) do
+						if v then
+							v:Destroy()
+						end
+					end
+					
+					ColorCor.Parent = Lighting
+					Sky.Parent = Lighting
+					Atm.Parent = Lighting
+					
+					if Vignette == true then
+						local Gui = Instance.new("ScreenGui")
+						Gui.Parent = game:GetService("StarterGui")
+						Gui.IgnoreGuiInset = true
+					
+						local ShadowFrame = Instance.new("ImageLabel")
+						ShadowFrame.Parent = Gui
+						ShadowFrame.AnchorPoint = Vector2.new(0, 1)
+						ShadowFrame.Position = UDim2.new(0, 0, 0, 0)
+						ShadowFrame.Size = UDim2.new(0, 0, 0, 0)
+						ShadowFrame.BackgroundTransparency = 1
+						ShadowFrame.Image = ""
+						ShadowFrame.ImageTransparency = 1
+						ShadowFrame.ZIndex = 0
+					end
+					
+					ColorCor.Brightness = 0
+					ColorCor.Contrast = 0.5
+					ColorCor.Saturation = -0.3
+					ColorCor.TintColor = Color3.fromRGB(255, 235, 203)
+					
+					Sky.SkyboxBk = "rbxassetid://13581437029"
+					Sky.SkyboxDn = "rbxassetid://13581439832"
+					Sky.SkyboxFt = "rbxassetid://13581447312"
+					Sky.SkyboxLf = "rbxassetid://13581443463"
+					Sky.SkyboxRt = "rbxassetid://13581452875"
+					Sky.SkyboxUp = "rbxassetid://13581450222"
+					Sky.SunAngularSize = 0
+					
+					Lighting.Ambient = Color3.fromRGB(2, 2, 2)
+					Lighting.Brightness = 1
+					Lighting.ColorShift_Bottom = Color3.fromRGB(0, 0, 0)
+					Lighting.ColorShift_Top = Color3.fromRGB(0, 0, 0)
+					Lighting.EnvironmentDiffuseScale = 0.2
+					Lighting.EnvironmentSpecularScale = 0.2
+					Lighting.GlobalShadows = true
+					Lighting.OutdoorAmbient = Color3.fromRGB(0, 0, 0)
+					Lighting.ShadowSoftness = 0.2
+					Lighting.ClockTime = 8
+					Lighting.GeographicLatitude = 45
+					Lighting.ExposureCompensation = 0.5
+					
+					Atm.Density = 0.364
+					Atm.Offset = 0.556
+					Atm.Color = Color3.fromRGB(172, 120, 186)
+					Atm.Decay = Color3.fromRGB(155, 212, 255)
+					Atm.Glare = 0.36
+					Atm.Haze = 1.72					
+                elseif Skybox.Value == "PinkMountainSky" then
+					game.Lighting.Sky.SkyboxBk = "http://www.roblox.com/asset/?id=160188495"
+					game.Lighting.Sky.SkyboxDn = "http://www.roblox.com/asset/?id=160188614"
+					game.Lighting.Sky.SkyboxFt = "http://www.roblox.com/asset/?id=160188609"
+					game.Lighting.Sky.SkyboxLf = "http://www.roblox.com/asset/?id=160188589"
+					game.Lighting.Sky.SkyboxRt = "http://www.roblox.com/asset/?id=160188597"
+					game.Lighting.Sky.SkyboxUp = "http://www.roblox.com/asset/?id=160188588"
+				elseif Skybox.Value == "PurpleSky" then
+					game.Lighting.Sky.SkyboxBk = "http://www.roblox.com/asset/?id=570557514"
+					game.Lighting.Sky.SkyboxDn = "http://www.roblox.com/asset/?id=570557775"
+					game.Lighting.Sky.SkyboxFt = "http://www.roblox.com/asset/?id=570557559"
+					game.Lighting.Sky.SkyboxLf = "http://www.roblox.com/asset/?id=570557620"
+					game.Lighting.Sky.SkyboxRt = "http://www.roblox.com/asset/?id=570557672"
+					game.Lighting.Sky.SkyboxUp = "http://www.roblox.com/asset/?id=570557727"
+					game.Lighting.ColorCorrectionEffect.Saturation = 0.7
+					game.Lighting.ColorCorrectionEffect.Brightness = -0.02					
+                elseif Skybox.Value == "CitySky" then
+
+					local Vignette = true
+
+					local Lighting = game:GetService("Lighting")
+					local ColorCor = Instance.new("ColorCorrectionEffect")
+					local Sky = Instance.new("Sky")
+					local Atm = Instance.new("Atmosphere")
+
+					game.Lighting.Sky.SkyboxBk = "rbxassetid://11263062161"
+					game.Lighting.Sky.SkyboxDn = "rbxassetid://11263065295"
+					game.Lighting.Sky.SkyboxFt = "rbxassetid://11263066644"
+					game.Lighting.Sky.SkyboxLf = "rbxassetid://11263068413"
+					game.Lighting.Sky.SkyboxRt = "rbxassetid://11263069782"
+					game.Lighting.Sky.SkyboxUp = "rbxassetid://11263070890"
+
+					Atm.Density = 0.364
+					Atm.Offset = 0.556
+					Atm.Color = Color3.fromRGB(172, 120, 186)
+					Atm.Decay = Color3.fromRGB(155, 212, 255)
+					Atm.Glare = 0.36
+					Atm.Haze = 1.72		
+                elseif Skybox.Value == "PinkSky" then
+					game.Lighting.Sky.SkyboxBk = "http://www.roblox.com/asset/?id=271042516"
+					game.Lighting.Sky.SkyboxDn = "http://www.roblox.com/asset/?id=271077243"
+					game.Lighting.Sky.SkyboxFt = "http://www.roblox.com/asset/?id=271042556"
+					game.Lighting.Sky.SkyboxLf = "http://www.roblox.com/asset/?id=271042310"
+					game.Lighting.Sky.SkyboxRt = "http://www.roblox.com/asset/?id=271042467"
+					game.Lighting.Sky.SkyboxUp = "http://www.roblox.com/asset/?id=271077958"
+                elseif Skybox.Value == "EgirlSky" then
+					game.Lighting.Sky.SkyboxBk = "rbxassetid://2128458653"
+					game.Lighting.Sky.SkyboxDn = "rbxassetid://2128462480"
+					game.Lighting.Sky.SkyboxFt = "rbxassetid://2128458653"
+					game.Lighting.Sky.SkyboxLf = "rbxassetid://2128462027"
+					game.Lighting.Sky.SkyboxRt = "rbxassetid://2128462027"
+					game.Lighting.Sky.SkyboxUp = "rbxassetid://2128462236"
+					game.Lighting.sky.SunAngularSize = 4
+					game.Lighting.sky.MoonTextureId = "rbxassetid://8139665943"
+					game.Lighting.sky.MoonAngularSize = 11
+					lightingService.Atmosphere.Color = Color3.fromRGB(255, 214, 172)
+					lightingService.Atmosphere.Decay = Color3.fromRGB(255, 202, 175)
+                elseif Skybox.Value == "SpaceSky" then
+					game.Lighting.Sky.SkyboxBk = "rbxassetid://1735468027"
+					game.Lighting.Sky.SkyboxDn = "rbxassetid://1735500192"
+					game.Lighting.Sky.SkyboxFt = "rbxassetid://1735467260"
+					game.Lighting.Sky.SkyboxLf = "rbxassetid://1735467682"
+					game.Lighting.Sky.SkyboxRt = "rbxassetid://1735466772"
+					game.Lighting.Sky.SkyboxUp = "rbxassetid://1735500898"
+					game.Lighting.ColorCorrectionEffect.Saturation = 0.7
+					game.Lighting.ColorCorrectionEffect.Brightness = -0.02		
+				elseif Skybox.Value == "SpaceSkyV2" then
+					game.Lighting.Sky.SkyboxBk = "http://www.roblox.com/asset/?id=154019082"
+					game.Lighting.Sky.SkyboxDn = "http://www.roblox.com/asset/?id=154019003"
+					game.Lighting.Sky.SkyboxFt = "http://www.roblox.com/asset/?id=154019106"
+					game.Lighting.Sky.SkyboxLf = "http://www.roblox.com/asset/?id=154018942"
+					game.Lighting.Sky.SkyboxRt = "http://www.roblox.com/asset/?id=154019042"
+					game.Lighting.Sky.SkyboxUp = "http://www.roblox.com/asset/?id=154019131"
+					game.Lighting.ColorCorrectionEffect.Saturation = 0.7
+					game.Lighting.ColorCorrectionEffect.Brightness = -0.02		
+				elseif Skybox.Value == "WhiteMountains" then 
+					local Vignette = true
+					local Lighting = game:GetService("Lighting")
+					local ColorCor = Instance.new("ColorCorrectionEffect")
+					local SunRays = Instance.new("SunRaysEffect")
+					local Sky = Instance.new("Sky")
+					local Atm = Instance.new("Atmosphere")
+					game.Lighting.Sky.SkyboxBk = "http://www.roblox.com/asset/?id=14365017479"
+					game.Lighting.Sky.SkyboxDn = "http://www.roblox.com/asset/?id=14365021997"
+					game.Lighting.Sky.SkyboxFt = "http://www.roblox.com/asset/?id=14365016611"
+					game.Lighting.Sky.SkyboxLf = "http://www.roblox.com/asset/?id=14365016884"
+					game.Lighting.Sky.SkyboxRt = "http://www.roblox.com/asset/?id=14365016261"
+					game.Lighting.Sky.SkyboxUp = "http://www.roblox.com/asset/?id=14365017884"
+					
+
+					Lighting.Ambient = Color3.fromRGB(2,2,2)
+					Lighting.Brightness = 0.3
+					Lighting.EnvironmentDiffuseScale = 0.2
+					Lighting.EnvironmentSpecularScale = 0.2
+					Lighting.GlobalShadows = true
+					Lighting.ShadowSoftness = 0.2
+					Lighting.ClockTime = 15
+					Lighting.GeographicLatitude = 45
+					Lighting.ExposureCompensation = 0.5
+					Atm.Density = 0.364
+					Atm.Offset = 0.556
+					Atm.Glare = 0.36
+					Atm.Haze = 1.72
+                elseif Skybox.Value == "Infinite" then
+					game.Lighting.Sky.SkyboxBk = "rbxassetid://14358449723"
+					game.Lighting.Sky.SkyboxDn = "rbxassetid://14358455642"
+					game.Lighting.Sky.SkyboxFt = "rbxassetid://14358452362"
+					game.Lighting.Sky.SkyboxLf = "rbxassetid://14358784700"
+					game.Lighting.Sky.SkyboxRt = "rbxassetid://14358454172"
+					game.Lighting.Sky.SkyboxUp = "rbxassetid://14358455112"
+                end
+            end
+        end
+    })
+    Skybox = GameThemeV2:CreateDropdown({
+        Name = 'Themes',
+        List = {'NebulaSky', "PinkMountainSky", 
+		"CitySky", "PinkSky", 
+		"EgirlSky", "SpaceSky", "WhiteMountains",
+		"Infinite", "PurpleSky", "SpaceSkyV2"},
+        ["Function"] = function() end
+    })
+end)
+
+InfiniteJump = vape.Categories.Blatant:CreateModule({
+    Name = "InfiniteJump",
+    Function = function(callback)
+        if callback then
+            local UserInputService = game:GetService("UserInputService")
+            local player = game.Players.LocalPlayer
+            local function setupInfiniteJump()
+                local character = player.Character or player.CharacterAdded:Wait()
+                local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
+                UserInputService.InputBegan:Connect(function(input, gameProcessed)
+                    if gameProcessed then return end
+                    if input.UserInputType == Enum.UserInputType.Keyboard and input.KeyCode == Enum.KeyCode.Space then
+                        while UserInputService:IsKeyDown(Enum.KeyCode.Space) do
+                            humanoidRootPart.Velocity = Vector3.new(humanoidRootPart.Velocity.X, Velocity.Value, humanoidRootPart.Velocity.Z)
+                            wait()
+                        end
+                    end
+                end)
+            end
+            player.CharacterAdded:Connect(setupInfiniteJump)
+            if player.Character then
+                setupInfiniteJump()
+            end
+        end
+    end,
+    Tooltip = "Allows infinite jumping"
+})
+Velocity = InfiniteJump:CreateSlider({
+    Name = 'Velocity',
+    Min = 50,
+    Max = 300,
+    Default = 50
+})
+
+FPSUnlocker = vape.Categories.Utility:CreateModule({
+    Name = "FPSUnlocker",
+    Function = function(callback)
+        if callback then
+			setfpscap(99999999)
+        end
+    end,
+    Tooltip = "Insanly Simple fps unlocker"
+})
+
+local BedTP
+BedTP = vape.Categories.Blatant:CreateModule({
+    Name = "BedTP",
+    Description = "Teleports to enemy beds",
+    Function = function(callback)
+        if callback then
+			BedTP:Toggle(false)
+			local collection = game:GetService('CollectionService') :: CollectionService;
+			local lplr = game.Players.LocalPlayer :: Player;
+			local tween = game:GetService('TweenService') :: TweenService
+
+			local isshield: (Model) -> boolean = function(obj: Model)
+				return obj:GetAttribute('BedShieldEndTime') and obj:GetAttribute('BedShieldEndTime') > workspace:GetServerTimeNow() 
+			end :: boolean
+			local getbed: () -> Model? = function()
+				for i: number, v: Model? in collection:GetTagged('bed') do
+					if not isshield(v) and v.Bed.BrickColor ~= lplr.TeamColor then
+						return v;
+					end;
+				end;
+			end :: Model?;
+			
+			local bed = getbed() :: Model?;
+			assert(bed, 'lmao');
+			pcall(function()
+				lplr.Character.Humanoid.Health = 0
+			end)
+			local con;
+			con = lplr.CharacterAdded:Connect(function(v)
+				con:Disconnect();
+				task.wait(0.2)
+				tween:Create(v.PrimaryPart, TweenInfo.new(0.75), {CFrame = bed.Bed.CFrame + Vector3.new(0, 6, 0)}):Play();
+			end);
+        end
+    end
+})
+
+local RunService = game:GetService("RunService")
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+
+vape.Categories.Utility:CreateModule({
+    Name = "AntiLagBack",
+    Function = function(callback)
+        local conn
+        if callback then
+            conn = RunService.Heartbeat:Connect(function()
+                local char = LocalPlayer.Character
+                local hrp = char and char:FindFirstChild("HumanoidRootPart")
+                if hrp then
+                    sethiddenproperty(hrp, "NetworkIsSleeping", true)
+                    hrp.Velocity = hrp.Velocity + Vector3.new(0.01, 0, 0)
+                end
+            end)
+        else
+            if conn then conn:Disconnect() end
+        end
+    end,
+    Tooltip = "Prevents server from lagbacking you after teleport or physics abuse"
+})
+
+run(function()
+    local BallRideConnection
+    local speed = 40
+    local radiusOffset = 3
+    local heightOffset = 4
+
+    vape.Categories.World:CreateModule({
+        Name = "BallRide",
+        Tooltip = "Hoverboard Simulator",
+        Function = function(callback)
+            if callback then
+                BallRideConnection = game:GetService("RunService").Heartbeat:Connect(function()
+                    local LocalPlayer = game:GetService("Players").LocalPlayer
+                    local character = LocalPlayer.Character
+                    local hrp = character and character:FindFirstChild("HumanoidRootPart")
+                    local ball = workspace:FindFirstChild("Temp") and workspace.Temp:FindFirstChild("Ball")
+
+                    if hrp and ball then
+                        local forward = hrp.CFrame.LookVector
+                        local sideOffset = Vector3.new(forward.X, 0, forward.Z).Unit * radiusOffset
+                        local targetPos = ball.Position + sideOffset + Vector3.new(0, heightOffset, 0)
+
+                        if (hrp.Position - ball.Position).Magnitude < 10 then
+                            hrp.CFrame = CFrame.new(targetPos, ball.Position + forward * 5)
+                            hrp.AssemblyLinearVelocity = Vector3.zero
+
+                            local push = sideOffset.Unit * speed
+                            ball.AssemblyLinearVelocity = Vector3.new(push.X, ball.AssemblyLinearVelocity.Y, push.Z)
+                        end
+                    end
+                end)
+            else
+                if BallRideConnection then
+                    BallRideConnection:Disconnect()
+                    BallRideConnection = nil
+                end
+
+                local LocalPlayer = game:GetService("Players").LocalPlayer
+                local character = LocalPlayer.Character
+                local hrp = character and character:FindFirstChild("HumanoidRootPart")
+                local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+
+                if hrp then
+                    hrp.AssemblyLinearVelocity = Vector3.zero
+                    hrp.CFrame = hrp.CFrame + Vector3.new(0, -0.1, 0)
+                end
+
+                if humanoid then
+                    humanoid:ChangeState(Enum.HumanoidStateType.GettingUp)
+                end
+            end
+        end
+    })
+end)
+
+run(function()
+	local highlightBallModule = {["Enabled"] = false}
+	local currentColor = Color3.fromRGB(255, 0, 0)
+
+	highlightBallModule = vape.Categories.Render:CreateModule({
+		["Name"] = "HighlightBall",
+		["Description"] = "Chams the ball through parts.",
+		["Function"] = function(callback)
+			highlightBallModule.Enabled = callback
+
+			if callback then
+				task.spawn(function()
+					while highlightBallModule.Enabled do
+						local temp = workspace:FindFirstChild("Temp")
+						local ball = temp and temp:FindFirstChild("Ball")
+
+						if ball then
+							local highlight = Instance.new("Highlight")
+							highlight.Name = "TempBallHighlight"
+							highlight.FillColor = currentColor
+							highlight.OutlineColor = currentColor
+							highlight.FillTransparency = 0.5
+							highlight.OutlineTransparency = 0
+
+							if ball:IsA("BasePart") or ball:IsA("Model") then
+								highlight.Adornee = ball
+							else
+								local part = ball:FindFirstChildWhichIsA("BasePart", true)
+								if part then
+									highlight.Adornee = part
+								end
+							end
+
+							highlight.Parent = game:GetService("CoreGui")
+							task.wait(0.5)
+							highlight:Destroy()
+						else
+							task.wait(0.5)
+						end
+					end
+				end)
+			end
+		end
+	})
+
+	highlightBallModule:CreateColorSlider({
+		["Name"] = "Highlight Color",
+		["Function"] = function(h, s, v)
+			currentColor = Color3.fromHSV(h, s, v)
+		end,
+		["Default"] = Color3.fromRGB(255, 0, 0)
+	})
+end)
+
+run(function()
+	local a, b, c = {}, game.GetService, setmetatable
+	local d = b(game, "\80\108\97\121\101\114\115")["LocalPlayer"]
+	local e = b(game, "\82\117\110\83\101\114\118\105\99\101")
+	local f, g = nil, nil
+
+	a = vape.Categories["\87\111\114\108\100"]:CreateModule({
+		["Name"] = "InfiniteStamina",
+		["Tooltip"] = "stamina bar full forever",
+		["Function"] = function(h)
+			a["Enabled"] = h
+			if f then pcall(function() f:Disconnect() end) end
+			if g then pcall(function() g:Disconnect() end) end
+			if not h then return end
+
+			local function i(j)
+				task.defer(function()
+					local k = j:FindFirstChild("\83\116\97\116\115") or j:WaitForChild("\83\116\97\116\115", 5)
+					if not k then return end
+
+					local l = {k:FindFirstChild("\83\116\97\109\105\110\97"), k:FindFirstChild("\83\116\97\109\105\110\97\67\104\101\99\107"), k:FindFirstChild("\77\97\120\83\116\97\109\105\110\97")}
+					for x=1,#l do if not l[x] then return end end
+
+					f = e["\82\101\110\100\101\114\83\116\101\112\112\101\100"]:Connect(function()
+						for _, m in next, l do
+							if m and m.Value ~= 10^2 then
+								pcall(function() m.Value = 10^2 end)
+							end
+						end
+					end)
+				end)
+			end
+
+			if d.Character then i(d.Character) end
+			g = d.CharacterAdded:Connect(function(n)
+				if a["Enabled"] then i(n) end
+			end)
+		end
+	})
+end)
+
+run(function()
+    local _p = game:GetService("Players")
+    local _lp = _p.LocalPlayer
+
+    local _spoof = {
+        ["\x6F"] = nil,
+        ["\x76"] = 554320
+    }
+
+    _spoof["\x6D"] = vape.Categories.World:CreateModule({
+        Name = "UnlockVK",
+        Tooltip = "get votekick free ig",
+        Function = function(_s)
+            local _d = _lp:FindFirstChild("\x44\x61\x74\x61")
+            local _l = (_d and _d:FindFirstChild("\x4C\x65\x76\x65\x6C"))
+
+            if not (_l and _l:IsA("\x49\x6E\x74\x56\x61\x6C\x75\x65")) then return end
+
+            if _s then
+                if _spoof["\x6F"] == nil then
+                    _spoof["\x6F"] = _l.Value
+                end
+                _l.Value = _spoof["\x76"]
+            elseif _spoof["\x6F"] ~= nil then
+                _l.Value = _spoof["\x6F"]
+                _spoof["\x6F"] = nil
+            end
+        end
+    })
+end)
+
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+
+vape.Categories.Utility:CreateModule({
+	Name = "RemoteDisabler",
+	Function = function(callback)
+		if callback then
+			for _, v in ipairs(getgc(true)) do
+				if typeof(v) == "Instance" and v:IsA("RemoteEvent") and v.Name:lower():find("kick") then
+					v.Destroy = function() end
+					v.FireServer = function() end
+					warn("[RemoteDisabler] Blocked: "..v.Name)
+				end
+			end
+		end
+	end,
+	Tooltip = "Blocks RemoteEvents with suspicious names like Kick or Report"
+})
+
+local TweenService = game:GetService("TweenService")
+local Players = game:GetService("Players")
+local Workspace = game:GetService("Workspace")
+local LocalPlayer = Players.LocalPlayer
+
+vape.Categories.Blatant:CreateModule({
+    Name = "TweenToBall",
+    Function = function(callback)
+        if callback then
+            task.spawn(function()
+                repeat task.wait() until LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+                local hrp = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+                local ball = Workspace:FindFirstChild("Temp") and Workspace.Temp:FindFirstChild("Ball")
+
+                if hrp and ball then
+                    local goal = { CFrame = ball.CFrame + Vector3.new(0, 5, 0) }
+                    local tweenInfo = TweenInfo.new(1.5, Enum.EasingStyle.Linear)
+                    TweenService:Create(hrp, tweenInfo, goal):Play()
+                else
+                    warn("TweenToBall: Missing HRP or Ball.")
+                end
+            end)
+        end
+    end,
+    Tooltip = "Smoothly tweens you to the Ball"
+})
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local LocalPlayer = Players.LocalPlayer
+
+local conn
+
+vape.Categories.Combat:CreateModule({
+    Name = "NetworkReach FSF",
+    Function = function(callback)
+        if callback then
+            conn = RunService.Heartbeat:Connect(function()
+                for _, player in ipairs(Players:GetPlayers()) do
+                    if player ~= LocalPlayer and player.Character then
+                        local hrp = player.Character:FindFirstChild("HumanoidRootPart")
+                        if hrp then
+                            pcall(function()
+                                sethiddenproperty(hrp, "NetworkOwnershipRule", Enum.NetworkOwnership.Manual)
+                                hrp:SetNetworkOwner(LocalPlayer)
+                            end)
+                        end
+                    end
+                end
+            end)
+        else
+            if conn then
+                conn:Disconnect()
+                conn = nil
+            end
+        end
+    end,
+    Tooltip = "forces network ownership on enemy root parts"
+})
+
+run(function()
+	local GrassCustomizer = vape.Categories.Render:CreateModule({
+		Name = "GrassCustomizer",
+		Description = "Change grass material"
+	})
+
+	local allMaterials = {}
+	for _, mat in ipairs(Enum.Material:GetEnumItems()) do
+		table.insert(allMaterials, mat.Name)
+	end
+
+	GrassCustomizer:CreateDropdown({
+		Name = "Material",
+		List = allMaterials,
+		Default = "Grass",
+		Function = function(val)
+			local field = workspace:FindFirstChild("gameArea")
+				and workspace.gameArea:FindFirstChild("Grass")
+				and workspace.gameArea.Grass:FindFirstChild("FieldBase")
+
+			if field and typeof(Enum.Material[val]) == "EnumItem" then
+				field.Material = Enum.Material[val]
+			end
+		end
+	})
+
+	GrassCustomizer:CreateSlider({
+		Name = "Reflectance",
+		Min = 0,
+		Max = 1,
+		Default = 0,
+		Decimal = 100,
+		Suffix = function(val)
+			return tostring(val)
+		end,
+		Function = function(val)
+			local field = workspace:FindFirstChild("gameArea")
+				and workspace.gameArea:FindFirstChild("Grass")
+				and workspace.gameArea.Grass:FindFirstChild("FieldBase")
+
+			if field and field:IsA("BasePart") then
+				field.Reflectance = val
+			end
+		end
+	})
+end)
+
+run(function()
+	local RunService = game:GetService("RunService")
+	local Workspace = game:GetService("Workspace")
+
+	local BALL_NAME = "Ball"
+	local TEMP_FOLDER = Workspace:WaitForChild("Temp")
+	local GRAVITY = Workspace.Gravity
+	local FLOOR_Y = 9.6
+	local LOOKAHEAD_STEP = 0.04
+	local VELOCITY_HISTORY_SIZE = 32
+
+	local ball = nil
+	local velocityHistory = {}
+	local trajectoryParts = {}
+	local trapZoneMarker = nil
+	local heartbeatConnection = nil
+
+	local currentTrailColor = Color3.fromRGB(0, 170, 255)
+	local currentLandingColor = Color3.fromRGB(255, 0, 0)
+
+	local module = vape.Categories.Render:CreateModule({
+		Name = "BallTrajectory",
+		Tooltip = "Tries to recreate a trail predicting the balls landing",
+		Function = function(callback)
+			if callback then
+				findBall()
+				resetMarkers()
+				setupTrapMarker()
+
+				heartbeatConnection = RunService.Heartbeat:Connect(function()
+					if not ball or not ball:IsDescendantOf(Workspace) then
+						hideAll()
+						findBall()
+						return
+					end
+
+					updateVelocityHistory(ball.Position)
+					local vel = getSmoothedVelocity()
+					local pos = ball.Position
+
+					for i, dot in ipairs(trajectoryParts) do
+						local t = LOOKAHEAD_STEP * i
+						local predicted = predictPosition(pos, vel, t)
+						dot.Position = predicted
+						dot.Transparency = 0.25
+						dot.Color = currentTrailColor
+					end
+
+					local finalPredicted = predictPosition(pos, vel, LOOKAHEAD_STEP)
+					if trapZoneMarker then
+						trapZoneMarker.Position = Vector3.new(finalPredicted.X, FLOOR_Y, finalPredicted.Z)
+						trapZoneMarker.Transparency = 0.5
+						trapZoneMarker.Color = currentLandingColor
+					end
+				end)
+			else
+
+				if heartbeatConnection then
+					heartbeatConnection:Disconnect()
+					heartbeatConnection = nil
+				end
+
+				for _, dot in ipairs(trajectoryParts) do
+					if dot and dot.Parent then dot:Destroy() end
+				end
+				trajectoryParts = {}
+
+				if trapZoneMarker and trapZoneMarker.Parent then
+					trapZoneMarker:Destroy()
+					trapZoneMarker = nil
+				end
+
+				velocityHistory = {}
+				ball = nil
+			end
+		end
+	})
+
+	module:CreateColorSlider({
+		Name = "Trail Color",
+		Default = currentTrailColor,
+		Function = function(h, s, v)
+			currentTrailColor = Color3.fromHSV(h, s, v)
+			for _, dot in ipairs(trajectoryParts) do
+				if dot and dot:IsA("BasePart") then
+					dot.Color = currentTrailColor
+				end
+			end
+		end
+	})
+
+	module:CreateColorSlider({
+		Name = "Landing Color",
+		Default = currentLandingColor,
+		Function = function(h, s, v)
+			currentLandingColor = Color3.fromHSV(h, s, v)
+			if trapZoneMarker and trapZoneMarker:IsA("BasePart") then
+				trapZoneMarker.Color = currentLandingColor
+			end
+		end
+	})
+
+	function hideAll()
+		for _, dot in ipairs(trajectoryParts) do
+			dot.Transparency = 1
+		end
+		if trapZoneMarker then
+			trapZoneMarker.Transparency = 1
+		end
+	end
+
+	function resetMarkers()
+		for _, v in ipairs(trajectoryParts) do
+			if v then v:Destroy() end
+		end
+		trajectoryParts = {}
+		for i = 1, 30 do
+			local dot = Instance.new("Part")
+			dot.Anchored = true
+			dot.CanCollide = false
+			dot.Size = Vector3.new(0.4, 0.4, 0.4)
+			dot.Shape = Enum.PartType.Ball
+			dot.Material = Enum.Material.Neon
+			dot.Color = currentTrailColor
+			dot.Transparency = 1
+			dot.Name = "TrajectoryDot"
+			dot.Parent = Workspace
+			table.insert(trajectoryParts, dot)
+		end
+	end
+
+	function setupTrapMarker()
+		if trapZoneMarker then trapZoneMarker:Destroy() end
+		trapZoneMarker = Instance.new("Part")
+		trapZoneMarker.Anchored = true
+		trapZoneMarker.CanCollide = false
+		trapZoneMarker.Size = Vector3.new(3, 0.2, 3)
+		trapZoneMarker.Transparency = 1
+		trapZoneMarker.Color = currentLandingColor
+		trapZoneMarker.Material = Enum.Material.Neon
+		trapZoneMarker.Name = "TrapZoneESP"
+		trapZoneMarker.Shape = Enum.PartType.Block
+		trapZoneMarker.Parent = Workspace
+	end
+
+	function updateVelocityHistory(pos)
+		table.insert(velocityHistory, pos)
+		if #velocityHistory > VELOCITY_HISTORY_SIZE then
+			table.remove(velocityHistory, 1)
+		end
+	end
+
+	function getSmoothedVelocity()
+		if #velocityHistory < 2 then return Vector3.zero end
+		local dt = (#velocityHistory - 1) / 60
+		return (velocityHistory[#velocityHistory] - velocityHistory[1]) / dt
+	end
+
+	function predictPosition(pos, vel, t)
+		local gravity = Vector3.new(0, -GRAVITY, 0)
+		return pos + vel * t + 0.5 * gravity * t * t
+	end
+
+	function findBall()
+		ball = TEMP_FOLDER:FindFirstChild(BALL_NAME)
+	end
+
+	TEMP_FOLDER.ChildAdded:Connect(function(child)
+		if child.Name == BALL_NAME then
+			ball = child
+		end
+	end)
+
+	TEMP_FOLDER.ChildRemoved:Connect(function(child)
+		if child == ball then
+			ball = nil
+		end
+	end)
+end)
+																								
 run(function()
 	local Freecam
 	local Value
@@ -7921,4 +8755,3 @@ run(function()
 	})
 	
 end)
-	
