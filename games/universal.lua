@@ -6589,7 +6589,289 @@ run(function()
 		end
 	})
 end)
-					
+
+run(function()
+    local TEAM_KEYWORDS = {
+        ["spain"] = "Spain",
+        ["mexico"] = "Mexico",
+        ["romania"] = "Romania",
+        ["roma"] = "Romania",
+        ["germany"] = "Germany",
+        ["croatia"] = "Croatia",
+        ["france"] = "France",
+        ["usa"] = "USA",
+        ["denmark"] = "Denmark",
+        ["netherlands"] = "Netherlands",
+        ["bosnia"] = "Bosnia",
+        ["morocco"] = "Morocco",
+        ["sweden"] = "Sweden",
+        ["argentina"] = "Argentina",
+        ["belgium"] = "Belgium",
+        ["portugal"] = "Portugal",
+        ["wales"] = "Wales",
+        ["scotland"] = "Scotland",
+        ["south korea"] = "SouthKorea",
+        ["brazil"] = "Brazil",
+        ["canada"] = "Canada",
+        ["england"] = "England",
+        ["japan"] = "Japan",
+        ["poland"] = "Poland",
+        ["uruguay"] = "Uruguay",
+        ["italy"] = "Italy",
+        ["ac milan"] = "ACMilan",
+        ["city"] = "ManCity",
+        ["dortmund"] = "Dortmund",
+        ["miami"] = "InterMiami",
+        ["lazio"] = "Lazio",
+        ["newcastle"] = "Newcastle",
+        ["munich"] = "Bayern",
+        ["chelsea"] = "Chelsea",
+        ["b04"] = "Bayer04",
+        ["inter milan"] = "InterMilan",
+        ["fiorentina"] = "Fiorentina",
+        ["paris"] = "PSG",
+        ["manchester"] = "ManUnited",
+        ["napoli"] = "Napoli",
+        ["vasco"] = "VascoDaGama",
+        ["liverpool"] = "Liverpool",
+        ["atletico"] = "AtleticoMadrid",
+        ["real madrid"] = "RealMadrid",
+        ["sounders"] = "SeattleSounders",
+        ["tottenham"] = "Tottenham",
+        ["barcelona"] = "Barcelona",
+        ["ajax"] = "Ajax",
+        ["juventus"] = "Juventus",
+        ["arsenal"] = "Arsenal"
+    }
+
+local OUTFITS = {
+    Romania = {Tracksuit = "rbxassetid://18652449183", Pants = "rbxassetid://18640261775", VertexColor = Vector3.new(0.494, 0.086, 0.125)},
+    ACMilan = {Tracksuit = "rbxassetid://18640607686", Pants = "rbxassetid://18640605629", VertexColor = Vector3.new(0.04, 0.04, 0.04)},
+    Spain = {Tracksuit = "rbxassetid://18672704660", Pants = "rbxassetid://18672709249", VertexColor = Vector3.new(0.514, 0, 0)},
+    Mexico = {Tracksuit = "rbxassetid://15486061492", Pants = "rbxassetid://15107181778", VertexColor = Vector3.new(0.043, 0.478, 0.313)},
+    ManCity = {Tracksuit = "rbxassetid://16306240157", Pants = "rbxassetid://16306238253", VertexColor = Vector3.new(0.533, 0.714, 0.878)},
+    Dortmund = {Tracksuit = "rbxassetid://15106415459", Pants = "rbxassetid://15059672079", VertexColor = Vector3.new(0.2, 0.2, 0.2)},
+    InterMiami = {Tracksuit = "rbxassetid://15106547920", Pants = "rbxassetid://15081726497", VertexColor = Vector3.new(0.1, 0.1, 0.1)},
+    Lazio = {Tracksuit = "rbxassetid://18652444931", Pants = "rbxassetid://18640380785", VertexColor = Vector3.new(0.98, 0.98, 0.98)},
+    Newcastle = {Tracksuit = "rbxassetid://18897656858", Pants = "rbxassetid://18897654349", VertexColor = Vector3.new(1, 1, 1)},
+    Germany = {Tracksuit = "rbxassetid://18652438606", Pants = "rbxassetid://18640099509", VertexColor = Vector3.new(0.99, 0.99, 0.99)},
+    Bayern = {Tracksuit = "rbxassetid://15441534187", Pants = "rbxassetid://15059692233", VertexColor = Vector3.new(0.043, 0.164, 0.364)},
+    Croatia = {Tracksuit = "rbxassetid://15106908245", Pants = "rbxassetid://15106875766", VertexColor = Vector3.new(0.113, 0.207, 0.38)},
+    Chelsea = {Tracksuit = "rbxassetid://18640180437", Pants = "rbxassetid://18640176256", VertexColor = Vector3.new(0.2, 0.2, 0.667)},
+    Bayer04 = {Tracksuit = "rbxassetid://18652446397", Pants = "rbxassetid://18640512373", VertexColor = Vector3.new(0.05, 0.05, 0.05)},
+    InterMilan = {Tracksuit = "rbxassetid://18652440064", Pants = "rbxassetid://18640165362", VertexColor = Vector3.new(0.11, 0.294, 0.541)},
+    Uruguay = {Tracksuit = "rbxassetid://18640285532", Pants = "rbxassetid://18820416678", VertexColor = Vector3.new(0.05, 0.05, 0.05)},
+    Fiorentina = {Tracksuit = "rbxassetid://18652435948", Pants = "rbxassetid://18640555243", VertexColor = Vector3.new(0.278, 0.122, 0.404)},
+    PSG = {Tracksuit = "rbxassetid://15106626229", Pants = "rbxassetid://15059655263", VertexColor = Vector3.new(0.086, 0.113, 0.258)},
+    ManUnited = {Tracksuit = "rbxassetid://15106575646", Pants = "rbxassetid://16571736772", VertexColor = Vector3.new(0.472, 0.08, 0.125)},
+    Napoli = {Tracksuit = "rbxassetid://18640210637", Pants = "rbxassetid://18640207548", VertexColor = Vector3.new(1, 1, 1)},
+    VascoDaGama = {Tracksuit = "rbxassetid://18640431111", Pants = "rbxassetid://18640428921", VertexColor = Vector3.new(0.96, 0.96, 0.96)},
+    France = {Tracksuit = "rbxassetid://18652437169", Pants = "rbxassetid://18640440646", VertexColor = Vector3.new(0.03, 0.03, 0.03)},
+    USA = {Tracksuit = "rbxassetid://18640129241", Pants = "rbxassetid://18640124766", VertexColor = Vector3.new(0.078, 0.067, 0.639)},
+    Denmark = {Tracksuit = "rbxassetid://18897824574", Pants = "rbxassetid://18897822242", VertexColor = Vector3.new(0.6, 0.11, 0.125)},
+    Netherlands = {Tracksuit = "rbxassetid://15107258795", Pants = "rbxassetid://15107209764", VertexColor = Vector3.new(0.913, 0.45, 0.074)},
+    Bosnia = {Tracksuit = "rbxassetid://18898334587", Pants = "rbxassetid://18897697524", VertexColor = Vector3.new(0.039, 0.11, 0.388)},
+    Morocco = {Tracksuit = "rbxassetid://15107043039", Pants = "rbxassetid://15106968119", VertexColor = Vector3.new(0.121, 0.376, 0.29)},
+    Sweden = {Tracksuit = "rbxassetid://18897663168", Pants = "rbxassetid://18897661303", VertexColor = Vector3.new(0.106, 0.18, 0.388)},
+    Liverpool = {Tracksuit = "rbxassetid://15107420887", Pants = "rbxassetid://15107370058", VertexColor = Vector3.new(0.1, 0.1, 0.1)},
+    Argentina = {Tracksuit = "rbxassetid://15441573500", Pants = "rbxassetid://6383379501", VertexColor = Vector3.new(0.95, 0.95, 0.95)},
+    AtleticoMadrid = {Tracksuit = "rbxassetid://18672692090", Pants = "rbxassetid://18640496290", VertexColor = Vector3.new(0.757, 0, 0.031)},
+    RealMadrid = {Tracksuit = "rbxassetid://15107333190", Pants = "rbxassetid://15107287713", VertexColor = Vector3.new(1, 1, 1)},
+    Belgium = {Tracksuit = "rbxassetid://18652447694", Pants = "rbxassetid://18640273265", VertexColor = Vector3.new(0.608, 0.102, 0.165)},
+    SeattleSounders = {Tracksuit = "rbxassetid://15155268593", Pants = "rbxassetid://15155223190", VertexColor = Vector3.new(0.341, 0.56, 0.231)},
+    Portugal = {Tracksuit = "rbxassetid://15441455921", Pants = "rbxassetid://15148322836", VertexColor = Vector3.new(0.623, 0.125, 0.156)},
+    Wales = {Tracksuit = "rbxassetid://18640526988", Pants = "rbxassetid://18640524650", VertexColor = Vector3.new(0.184, 0.188, 0.224)},
+    Tottenham = {Tracksuit = "rbxassetid://18640570495", Pants = "rbxassetid://18640568037", VertexColor = Vector3.new(0.99, 0.99, 0.99)},
+    Scotland = {Tracksuit = "rbxassetid://18672687656", Pants = "rbxassetid://18672684856", VertexColor = Vector3.new(0.149, 0.255, 0.49)},
+    Barcelona = {Tracksuit = "rbxassetid://15105888118", Pants = "rbxassetid://15143422344", VertexColor = Vector3.new(0.65, 0.137, 0.192)},
+    Ajax = {Tracksuit = "rbxassetid://18640420915", Pants = "rbxassetid://18640418503", VertexColor = Vector3.new(0.05, 0.05, 0.05)},
+    SouthKorea = {Tracksuit = "rbxassetid://18640409287", Pants = "rbxassetid://18640405339", VertexColor = Vector3.new(0.99, 0.99, 0.99)},
+    Brazil = {Tracksuit = "rbxassetid://15441563091", Pants = "rbxassetid://15067629557", VertexColor = Vector3.new(0.219, 0.67, 0.545)},
+    Juventus = {Tracksuit = "rbxassetid://109248618534842", Pants = "rbxassetid://15289237982", VertexColor = Vector3.new(0, 0, 0)},
+    Canada = {Tracksuit = "rbxassetid://15107440236", Pants = "rbxassetid://15107102710", VertexColor = Vector3.new(0.915, 0.1, 0.1)},
+    England = {Tracksuit = "rbxassetid://18640247705", Pants = "rbxassetid://18640234942", VertexColor = Vector3.new(0.004, 0.169, 0.737)},
+    Arsenal = {Tracksuit = "rbxassetid://18640117782", Pants = "rbxassetid://18640115040", VertexColor = Vector3.new(1, 1, 1)},
+    Italy = {Tracksuit = "rbxassetid://18652441830", Pants = "rbxassetid://18640535256", VertexColor = Vector3.new(0.129, 0.286, 0.682)},
+    Japan = {Tracksuit = "rbxassetid://15486035362", Pants = "rbxassetid://15098612543", VertexColor = Vector3.new(0.839, 0.156, 0.125)},
+    Poland = {Tracksuit = "rbxassetid://18816034283", Pants = "rbxassetid://18816029572", VertexColor = Vector3.new(1, 0.078, 0.094)}
+    }
+
+    vape.Categories.Render:CreateModule({
+        Name = "Tracksuit",
+        Tooltip = "Clientsided, Refresh every time you swap teams or something",
+        Default = true,
+        Function = function(callback)
+            local Players = game:GetService("Players")
+            local RunService = game:GetService("RunService")
+            local LocalPlayer = Players.LocalPlayer
+            local CharacterContainer = workspace:WaitForChild("CharacterContainer")
+
+            local function cleanupOldOutfit()
+                if CharacterContainer then
+                    local playerContainer = CharacterContainer:FindFirstChild(LocalPlayer.Name)
+                    if playerContainer then
+                        local oldNeck = playerContainer:FindFirstChild("TracksuitNeck")
+                        if oldNeck then oldNeck:Destroy() end
+                    end
+                end
+            end
+
+            local function ensurePlayerContainer()
+                local container = CharacterContainer:FindFirstChild(LocalPlayer.Name)
+                if not container then
+                    repeat RunService.Heartbeat:Wait()
+                        container = CharacterContainer:FindFirstChild(LocalPlayer.Name)
+                    until container
+                end
+                return container
+            end
+
+            local function getCurrentTeam()
+                local playerContainer = ensurePlayerContainer()
+                local torso = playerContainer:FindFirstChild("Torso")
+                if not torso then return nil end
+                local jerseyGUI = torso:FindFirstChild("JerseyGUI")
+                if not jerseyGUI then return nil end
+                local teamLabel = jerseyGUI:FindFirstChild("Team")
+                return teamLabel and teamLabel.Text or nil
+            end
+
+            local function detectOutfit()
+                if LocalPlayer:FindFirstChild("SelectedTeam") and LocalPlayer.SelectedTeam.Value == "N/A" then
+                    return "SPECTATOR"
+                end
+                local teamName = getCurrentTeam()
+                if not teamName then return nil end
+                local lowerTeam = string.lower(teamName)
+                for keyword, outfitName in pairs(TEAM_KEYWORDS) do
+                    if string.find(lowerTeam, keyword) then
+                        return outfitName
+                    end
+                end
+                return nil
+            end
+
+            local function createExactTracksuitNeck(playerContainer, outfitName)
+                local outfit = OUTFITS[outfitName]
+                if not outfit then return nil end
+                local neckPart = Instance.new("Part")
+                neckPart.Name = "TracksuitNeck"
+                neckPart.BrickColor = BrickColor.new("Medium stone grey")
+                neckPart.Color = Color3.fromRGB(163, 162, 165)
+                neckPart.Material = Enum.Material.Plastic
+                neckPart.Size = Vector3.new(1, 1.085, 1)
+                neckPart.CanCollide = false
+                neckPart.Anchored = false
+                neckPart.Parent = playerContainer
+
+                Instance.new("StringValue", neckPart).Name = "AvatarPartScaleType"
+                Instance.new("Attachment", neckPart).Name = "HatAttachment"
+                neckPart.HatAttachment.CFrame = CFrame.new(0, 1.021, 0)
+
+                Instance.new("Vector3Value", neckPart).Name = "OriginalSize"
+                neckPart.OriginalSize.Value = Vector3.new(1, 1, 1)
+
+                local mesh = Instance.new("SpecialMesh")
+                mesh.Name = "SpecialMesh"
+                mesh.MeshId = "rbxassetid://12204061268"
+                mesh.TextureId = "rbxassetid://15565040201"
+                mesh.MeshType = Enum.MeshType.FileMesh
+                mesh.Scale = Vector3.new(1, 1.085, 1)
+                mesh.VertexColor = outfit.VertexColor
+                mesh.Parent = neckPart
+
+                local weld = Instance.new("Weld")
+                weld.Name = "TorsoWeld"
+                weld.Parent = neckPart
+
+                return neckPart
+            end
+
+            local function modifyTeamClothing(playerContainer, outfitName)
+                local outfit = OUTFITS[outfitName]
+                if not outfit then return end
+                local shirt = playerContainer:FindFirstChild("Shirt")
+                if shirt then shirt.ShirtTemplate = outfit.Tracksuit end
+                local pants = playerContainer:FindFirstChild("Pants")
+                if pants then pants.PantsTemplate = outfit.Pants end
+            end
+
+            local function positionNeckPart(neckPart, playerContainer)
+                local head = playerContainer:FindFirstChild("Head")
+                if head and neckPart and neckPart:FindFirstChild("TorsoWeld") then
+                    local weld = neckPart.TorsoWeld
+                    weld.Part0 = head
+                    weld.Part1 = neckPart
+                    weld.C0 = CFrame.new(0, -0.55, 0)
+                end
+            end
+
+            local function createFullOutfit()
+                cleanupOldOutfit()
+                local playerContainer = ensurePlayerContainer()
+                local outfitName = detectOutfit()
+                if outfitName == "SPECTATOR" then return end
+                if outfitName then
+                    modifyTeamClothing(playerContainer, outfitName)
+                    local neckPart = createExactTracksuitNeck(playerContainer, outfitName)
+                    if neckPart then
+                        positionNeckPart(neckPart, playerContainer)
+                    end
+                end
+            end
+
+            local function setupTeamChangeMonitor()
+                coroutine.wrap(function()
+                    local lastTeam = nil
+                    while callback() do
+                        local isSpectator = LocalPlayer.SelectedTeam and LocalPlayer.SelectedTeam.Value == "N/A"
+                        local currentTeam = isSpectator and "SPECTATOR" or getCurrentTeam()
+                        if currentTeam and currentTeam ~= lastTeam then
+                            createFullOutfit()
+                            lastTeam = currentTeam
+                        end
+                        task.wait(1)
+                    end
+                end)()
+            end
+
+            local function init()
+                pcall(createFullOutfit)
+                setupTeamChangeMonitor()
+                LocalPlayer.CharacterAdded:Connect(function()
+                    task.wait(1)
+                    createFullOutfit()
+                    setupTeamChangeMonitor()
+                end)
+                CharacterContainer.ChildAdded:Connect(function(child)
+                    if child.Name == LocalPlayer.Name then
+                        task.wait(0.5)
+                        createFullOutfit()
+                        setupTeamChangeMonitor()
+                    end
+                end)
+                RunService.Heartbeat:Connect(function()
+                    if not callback() then return end
+                    local container = CharacterContainer:FindFirstChild(LocalPlayer.Name)
+                    if container then
+                        local neckPart = container:FindFirstChild("TracksuitNeck")
+                        if neckPart then
+                            positionNeckPart(neckPart, container)
+                        end
+                    end
+                end)
+                if LocalPlayer:FindFirstChild("SelectedTeam") then
+                    LocalPlayer.SelectedTeam:GetPropertyChangedSignal("Value"):Connect(function()
+                        createFullOutfit()
+                    end)
+                end
+            end
+
+            init()
+        end
+    })
+end)
+		
 run(function()
     local BallRideConnection
     local speed = 40
