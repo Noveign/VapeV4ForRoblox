@@ -6448,6 +6448,149 @@ vape.Categories.World:CreateModule({
 })	
 
 run(function()
+	local Players = game:GetService("Players")
+	local UIS = game:GetService("UserInputService")
+	local ReplicatedStorage = game:GetService("ReplicatedStorage")
+	local Lighting = game:GetService("Lighting")
+	local TweenService = game:GetService("TweenService")
+	local LocalPlayer = Players.LocalPlayer
+	local Camera = workspace.CurrentCamera
+
+	local TEMP_FOLDER = workspace:WaitForChild("Temp")
+	local BALL_NAME = "Ball"
+	local ANIMATION_ID = "rbxassetid://18853355212"
+
+	local KickRemote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Kick")
+	local SetCollisionRemote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("SetCollisionGroup")
+	local PowerShotRemote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("PowerShot")
+
+	local KICK_PARAMS_BASE = {
+		Vector3.new(),
+		nil,
+		false,
+		true,
+		800.5,
+		"Right",
+		CFrame.new(262.50360107421875, 12.629940032958984, -18.665719985961914,
+			0.9999999403953552, 1.2247008740473575e-08, 0.00030110677471384406,
+			-1.2247551417488012e-08, 1, 1.8031141024721364e-09,
+			-0.00030110677471384406, -1.8068019302930338e-09, 0.9999999403953552)
+	}
+
+	local COLLISION_PARAMS = {0.917, "NoCharCollide"}
+
+	local function loadAnimation()
+		local character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+		local humanoid = character:WaitForChild("Humanoid")
+		local animator = humanoid:WaitForChild("Animator")
+		
+		local animation = Instance.new("Animation")
+		animation.AnimationId = ANIMATION_ID
+		
+		return animator, animation
+	end
+
+	local animator, animation = loadAnimation()
+	LocalPlayer.CharacterAdded:Connect(function(character)
+		character:WaitForChild("Humanoid")
+		animator, animation = loadAnimation()
+	end)
+
+	local function playPowerShotAnimation()
+		if animator and animation then
+			local track = animator:LoadAnimation(animation)
+			track:Play()
+			delay(0.8, function()
+				if track.IsPlaying then
+					track:Stop()
+				end
+			end)
+			return track
+		end
+		return nil
+	end
+
+	local function applyDelayedKickBlur()
+		local blur = Lighting:FindFirstChild("KickBlur") or Instance.new("BlurEffect")
+		blur.Name = "KickBlur"
+		blur.Size = 0
+		blur.Parent = Lighting
+
+		blur.Size = 20
+		local tween = TweenService:Create(blur, TweenInfo.new(0.3, Enum.EasingStyle.Linear, Enum.EasingDirection.Out), {Size = 0})
+		tween:Play()
+		tween.Completed:Connect(function()
+			blur:Destroy()
+		end)
+	end
+
+	local function executePowerKick()
+		local ball = TEMP_FOLDER:FindFirstChild(BALL_NAME)
+		if not ball then return end
+
+		playPowerShotAnimation()
+		task.delay(0.25, applyDelayedKickBlur)
+		task.wait(0.2)
+
+		local char = LocalPlayer.Character
+		local hrp = char and char:FindFirstChild("HumanoidRootPart")
+		if not hrp then return end
+
+		local camVec = Camera.CFrame.LookVector
+		local horizontalDirection = Vector3.new(camVec.X, 0, camVec.Z).Unit
+		local kickDirection = horizontalDirection * 170
+
+		local kickArgs = {
+			kickDirection,
+			ball,
+			KICK_PARAMS_BASE[3],
+			KICK_PARAMS_BASE[4],
+			KICK_PARAMS_BASE[5],
+			KICK_PARAMS_BASE[6],
+			KICK_PARAMS_BASE[7]
+		}
+
+		task.wait(0.05)
+		SetCollisionRemote:FireServer(unpack(COLLISION_PARAMS))
+		PowerShotRemote:FireServer()
+		KickRemote:FireServer(unpack(kickArgs))
+	end
+
+	local module
+	local rightClickConnectionBegin
+	local rightClickConnectionEnd
+
+	module = vape.Categories.Combat:CreateModule({
+		Name = "SuperShot",
+		Tooltip = "KABOOM (PS ONLY)",
+		Default = false,
+		Function = function(callback)
+			if callback then
+				rightClickConnectionBegin = UIS.InputBegan:Connect(function(input, gpe)
+					if input.UserInputType == Enum.UserInputType.MouseButton2 and not gpe then
+						local start = tick()
+						local active = true
+						task.delay(0.8, function()
+							if active and (tick() - start) >= 0.8 then
+								executePowerKick()
+							end
+						end)
+					end
+				end)
+
+				rightClickConnectionEnd = UIS.InputEnded:Connect(function(input)
+					if input.UserInputType == Enum.UserInputType.MouseButton2 then
+					end
+				end)
+			else
+				if rightClickConnectionBegin then rightClickConnectionBegin:Disconnect() end
+				if rightClickConnectionEnd then rightClickConnectionEnd:Disconnect() end
+			end
+		end
+	})
+end)
+					
+run(function()
     local BallRideConnection
     local speed = 40
     local radiusOffset = 3
