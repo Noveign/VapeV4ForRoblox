@@ -1087,6 +1087,112 @@ run(function()
 end)
 
 run(function()
+	local ElasticoDash
+	local Players = game:GetService("Players")
+	local Workspace = game:GetService("Workspace")
+	local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+	local player = Players.LocalPlayer
+	local TEMP_FOLDER = Workspace:WaitForChild("Temp")
+	local kickRemote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Kick")
+	local diveFX = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("DiveFX")
+
+	local lastActivation = 0
+	local COOLDOWN = 1.0
+
+	local LOCAL_VECTOR1 = Vector3.new(1, 0.1, 0.5)
+	local LOCAL_VECTOR2 = Vector3.new(-1, 0.1, 0.2)
+
+	local function localToWorld(localVec, hrp)
+		return hrp.CFrame:VectorToWorldSpace(localVec)
+	end
+
+	local function scaleVector(vec, magnitude)
+		return vec.Unit * magnitude
+	end
+
+	local function getPlayerMovementDirection(hrp)
+		local horizontalVelocity = Vector3.new(hrp.Velocity.X, 0, hrp.Velocity.Z)
+		if horizontalVelocity.Magnitude > 1 then
+			return horizontalVelocity.Unit
+		end
+		return hrp.CFrame.LookVector
+	end
+
+	local function playAnim(animName)
+		local character = player.Character
+		if not character then return end
+
+		local humanoid = character:FindFirstChildOfClass("Humanoid")
+		if not humanoid then return end
+
+		local animFolder = ReplicatedStorage:FindFirstChild("AnimFolder")
+		local anims = animFolder and animFolder:FindFirstChild("Default Animations")
+		local anim = anims and anims:FindFirstChild(animName)
+		if not anim then return end
+
+		local track
+		pcall(function()
+			track = humanoid:LoadAnimation(anim)
+		end)
+		if track then
+			track:Play()
+		end
+	end
+
+	local function performElasticoWithPull()
+		local currentTime = tick()
+		if currentTime - lastActivation < COOLDOWN then return end
+		lastActivation = currentTime
+
+		local character = player.Character
+		if not character then return end
+
+		local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+		if not humanoidRootPart then return end
+
+		local ball = TEMP_FOLDER:FindFirstChild("Ball")
+		if not ball then return end
+
+		local vec1 = scaleVector(localToWorld(LOCAL_VECTOR1, humanoidRootPart), 55)
+		playAnim("RightDribbleR")
+		kickRemote:FireServer(vec1, ball, true, false, 33, "Right", humanoidRootPart.CFrame, {}, false, false)
+
+		task.wait(0.2)
+
+		local vec2 = scaleVector(localToWorld(LOCAL_VECTOR2, humanoidRootPart), 55)
+		playAnim("SolsolerollL_B")
+		kickRemote:FireServer(vec2, ball, true, false, 33, "Right", humanoidRootPart.CFrame, {}, false, false)
+
+		task.wait(0.15)
+
+		local dir = getPlayerMovementDirection(humanoidRootPart) * 55
+		playAnim("firstTouch_airLF")
+		kickRemote:FireServer(dir, ball, false, false, 33, "Right", humanoidRootPart.CFrame, {}, false, false)
+
+		task.wait(0.3)
+
+		local weakDir = getPlayerMovementDirection(humanoidRootPart) * 27
+		playAnim("firstTouch_AirF")
+		kickRemote:FireServer(weakDir, ball, true, false, 33, "Right", humanoidRootPart.CFrame, {}, false, false)
+
+	end
+
+	ElasticoDash = vape.Categories.Blatant:CreateModule({
+		Name = "HocusPocus",
+		Tooltip = "Executes a hocus pocus like dribble",
+		Keybind = Enum.KeyCode.One,
+		ToggleOnKeybind = false,
+		Function = function(state)
+			if state then
+				performElasticoWithPull()
+				ElasticoDash:Toggle()
+			end
+		end
+	})
+end)
+				
+run(function()
 	local HitBoxes
 	local Targets
 	local TargetPart
