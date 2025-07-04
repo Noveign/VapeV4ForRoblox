@@ -1120,11 +1120,14 @@ run(function()
 		end,
 		Tooltip = 'Expands entities hitboxes'
 	})
+	
 	Targets = HitBoxes:CreateTargets({Players = true})
+	
 	TargetPart = HitBoxes:CreateDropdown({
 		Name = 'Part',
 		List = {'RootPart', 'Head'}
 	})
+	
 	Expand = HitBoxes:CreateSlider({
 		Name = 'Expand amount',
 		Min = 0,
@@ -1134,7 +1137,9 @@ run(function()
 			return val == 1 and 'stud' or 'studs'
 		end
 	})
+	
 end)
+
 
 Phase = vape.Categories.Blatant:CreateModule({
 		Name = 'Phase',
