@@ -999,6 +999,884 @@ run(function()
 end)
 
 run(function()
+	local Reach
+	local Targets
+	local Mode
+	local Value
+	local Chance
+	local Overlay = OverlapParams.new()
+	Overlay.FilterType = Enum.RaycastFilterType.Include
+	local modified = {}
+	
+	Reach = vape.Categories.Combat:CreateModule({
+		Name = 'Reach',
+		Function = function(callback)
+			if callback then
+				repeat
+					local tool = getTool()
+					tool = tool and tool:FindFirstChildWhichIsA('TouchTransmitter', true)
+					if tool then
+						if Mode.Value == 'TouchInterest' then
+							local entites = {}
+							for _, v in entitylib.List do
+								if v.Targetable then
+									if not Targets.Players.Enabled and v.Player then continue end
+									if not Targets.NPCs.Enabled and v.NPC then continue end
+									table.insert(entites, v.Character)
+								end
+							end
+	
+							Overlay.FilterDescendantsInstances = entites
+							local parts = workspace:GetPartBoundsInBox(tool.Parent.CFrame * CFrame.new(0, 0, Value.Value / 2), tool.Parent.Size + Vector3.new(0, 0, Value.Value), Overlay)
+	
+							for _, v in parts do
+								if Random.new().NextNumber(Random.new(), 0, 100) > Chance.Value then
+									task.wait(0.2)
+									break
+								end
+	
+								firetouchinterest(tool.Parent, v, 1)
+								firetouchinterest(tool.Parent, v, 0)
+							end
+						else
+							if not modified[tool.Parent] then
+								modified[tool.Parent] = tool.Parent.Size
+							end
+							tool.Parent.Size = modified[tool.Parent] + Vector3.new(0, 0, Value.Value)
+							tool.Parent.Massless = true
+						end
+					end
+	
+					task.wait()
+				until not Reach.Enabled
+			else
+				for i, v in modified do
+					i.Size = v
+					i.Massless = false
+				end
+				table.clear(modified)
+			end
+		end,
+		Tooltip = 'Extends tool attack reach'
+	})
+	Targets = Reach:CreateTargets({Players = true})
+	Mode = Reach:CreateDropdown({
+		Name = 'Mode',
+		List = {'TouchInterest', 'Resize'},
+		Function = function(val)
+			Chance.Object.Visible = val == 'TouchInterest'
+		end,
+		Tooltip = 'TouchInterest - Reports fake collision events to the server\nResize - Physically modifies the tools size'
+	})
+	Value = Reach:CreateSlider({
+		Name = 'Range',
+		Min = 0,
+		Max = 2,
+		Decimal = 10,
+		Suffix = function(val)
+			return val == 1 and 'stud' or 'studs'
+		end
+	})
+	Chance = Reach:CreateSlider({
+		Name = 'Chance',
+		Min = 0,
+		Max = 100,
+		Default = 100,
+		Suffix = '%'
+	})
+end)
+
+run(function()
+	local HitBoxes
+	local Targets
+	local TargetPart
+	local Expand
+	local modified = {}
+	
+	HitBoxes = vape.Categories.Blatant:CreateModule({
+		Name = 'HitBoxes',
+		Function = function(callback)
+			if callback then
+				repeat
+					for _, v in entitylib.List do
+						if v.Targetable then
+							if not Targets.Players.Enabled and v.Player then continue end
+							if not Targets.NPCs.Enabled and v.NPC then continue end
+							local part = v[TargetPart.Value]
+							if not modified[part] then
+								modified[part] = part.Size
+							end
+							part.Size = modified[part] + Vector3.new(Expand.Value, Expand.Value, Expand.Value)
+						end
+					end
+					task.wait()
+				until not HitBoxes.Enabled
+			else
+				for i, v in modified do
+					i.Size = v
+				end
+				table.clear(modified)
+			end
+		end,
+		Tooltip = 'Expands entities hitboxes'
+	})
+	Targets = HitBoxes:CreateTargets({Players = true})
+	TargetPart = HitBoxes:CreateDropdown({
+		Name = 'Part',
+		List = {'RootPart', 'Head'}
+	})
+	Expand = HitBoxes:CreateSlider({
+		Name = 'Expand amount',
+		Min = 0,
+		Max = 2,
+		Decimal = 10,
+		Suffix = function(val)
+			return val == 1 and 'stud' or 'studs'
+		end
+	})
+end)
+
+Phase = vape.Categories.Blatant:CreateModule({
+		Name = 'Phase',
+		Function = function(callback)
+			if callback then
+				Phase:Clean(runService.Stepped:Connect(function()
+					if entitylib.isAlive then
+						Functions[Mode.Value]()
+					end
+				end))
+	
+				if Mode.Value == 'FFlag' then
+					Phase:Clean(lplr.OnTeleport:Connect(function()
+						teleported = true
+						setfflag('AssemblyExtentsExpansionStudHundredth', '30')
+					end))
+				end
+			else
+				if fflag then
+					setfflag('AssemblyExtentsExpansionStudHundredth', '30')
+				end
+				for part in modified do
+					part.CanCollide = true
+				end
+				table.clear(modified)
+				fflag = nil
+			end
+		end,
+		Tooltip = 'Lets you Phase/Clip through walls. (Hold shift to use Phase over spider)'
+	})
+	Mode = Phase:CreateDropdown({
+		Name = 'Mode',
+		List = {'Part', 'Character', 'CFrame', 'Motor', 'FFlag'},
+		Function = function(val)
+			StudLimit.Object.Visible = val == 'CFrame' or val == 'Motor'
+			if fflag then
+				setfflag('AssemblyExtentsExpansionStudHundredth', '30')
+			end
+			for part in modified do
+				part.CanCollide = true
+			end
+			table.clear(modified)
+			fflag = nil
+		end,
+		Tooltip = 'Part - Modifies parts collision status around you\nCharacter - Modifies the local collision status of the character\nCFrame - Teleports you past parts\nMotor - Same as CFrame with a bypass\nFFlag - Directly adjusts all physics collisions'
+	})
+	StudLimit = Phase:CreateSlider({
+		Name = 'Wall Size',
+		Min = 1,
+		Max = 20,
+		Default = 5,
+		Suffix = function(val)
+			return val == 1 and 'stud' or 'studs'
+		end,
+		Darker = true,
+		Visible = false
+	})
+end)
+
+run(function()
+	local Speed
+	local Mode
+	local Options
+	local AutoJump
+	local AutoJumpCustom
+	local AutoJumpValue
+	local w, s, a, d = 0, 0, 0, 0
+	
+	Speed = vape.Categories.Blatant:CreateModule({
+		Name = 'Speed',
+		Function = function(callback)
+			frictionTable.Speed = callback and CustomProperties.Enabled or nil
+			updateVelocity()
+			if callback then
+				Speed:Clean(runService.PreSimulation:Connect(function(dt)
+					if entitylib.isAlive and not Fly.Enabled and not LongJump.Enabled then
+						local state = entitylib.character.Humanoid:GetState()
+						if state == Enum.HumanoidStateType.Climbing then return end
+	
+						local movevec = TargetStrafeVector or Options.MoveMethod.Value == 'Direct' and calculateMoveVector(Vector3.new(a + d, 0, w + s)) or entitylib.character.Humanoid.MoveDirection
+						SpeedMethods[Mode.Value](Options, movevec, dt)
+						if AutoJump.Enabled and entitylib.character.Humanoid.FloorMaterial ~= Enum.Material.Air and movevec ~= Vector3.zero then
+							if AutoJumpCustom.Enabled then
+								local velocity = entitylib.character.RootPart.Velocity * Vector3.new(1, 0, 1)
+								entitylib.character.RootPart.Velocity = Vector3.new(velocity.X, AutoJumpValue.Value, velocity.Z)
+							else
+								entitylib.character.Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+							end
+						end
+					end
+				end))
+	
+				w, s, a, d = inputService:IsKeyDown(Enum.KeyCode.W) and -1 or 0, inputService:IsKeyDown(Enum.KeyCode.S) and 1 or 0, inputService:IsKeyDown(Enum.KeyCode.A) and -1 or 0, inputService:IsKeyDown(Enum.KeyCode.D) and 1 or 0
+				for _, v in {'InputBegan', 'InputEnded'} do
+					Speed:Clean(inputService[v]:Connect(function(input)
+						if not inputService:GetFocusedTextBox() then
+							if input.KeyCode == Enum.KeyCode.W then
+								w = v == 'InputBegan' and -1 or 0
+							elseif input.KeyCode == Enum.KeyCode.S then
+								s = v == 'InputBegan' and 1 or 0
+							elseif input.KeyCode == Enum.KeyCode.A then
+								a = v == 'InputBegan' and -1 or 0
+							elseif input.KeyCode == Enum.KeyCode.D then
+								d = v == 'InputBegan' and 1 or 0
+							end
+						end
+					end))
+				end
+			else
+				if Options.WalkSpeed and entitylib.isAlive then
+					entitylib.character.Humanoid.WalkSpeed = Options.WalkSpeed
+				end
+				Options.WalkSpeed = nil
+			end
+		end,
+		ExtraText = function()
+			return Mode.Value
+		end,
+		Tooltip = 'Increases your movement with various methods.'
+	})
+	Mode = Speed:CreateDropdown({
+		Name = 'Mode',
+		List = SpeedMethodList,
+		Function = function(val)
+			Options.WallCheck.Object.Visible = val == 'CFrame' or val == 'TP'
+			Options.TPFrequency.Object.Visible = val == 'TP'
+			Options.PulseLength.Object.Visible = val == 'Pulse'
+			Options.PulseDelay.Object.Visible = val == 'Pulse'
+			if Speed.Enabled then
+				Speed:Toggle()
+				Speed:Toggle()
+			end
+		end,
+		Tooltip = 'Velocity - Uses smooth physics based movement\nImpulse - Same as velocity while using forces instead\nCFrame - Directly adjusts the position of the root\nTP - Large teleports within intervals\nPulse - Controllable bursts of speed\nWalkSpeed - The classic mode of speed, usually detected on most games.'
+	})
+	Options = {
+		MoveMethod = Speed:CreateDropdown({
+			Name = 'Move Mode',
+			List = {'MoveDirection', 'Direct'},
+			Tooltip = 'MoveDirection - Uses the games input vector for movement\nDirect - Directly calculate our own input vector'
+		}),
+		Value = Speed:CreateSlider({
+			Name = 'Speed',
+			Min = 1,
+			Max = 150,
+			Default = 50,
+			Suffix = function(val)
+				return val == 1 and 'stud' or 'studs'
+			end
+		}),
+		TPFrequency = Speed:CreateSlider({
+			Name = 'TP Frequency',
+			Min = 0,
+			Max = 1,
+			Decimal = 100,
+			Darker = true,
+			Visible = false,
+			Suffix = function(val)
+				return val == 1 and 'second' or 'seconds'
+			end
+		}),
+		PulseLength = Speed:CreateSlider({
+			Name = 'Pulse Length',
+			Min = 0,
+			Max = 1,
+			Decimal = 100,
+			Darker = true,
+			Visible = false,
+			Suffix = function(val)
+				return val == 1 and 'second' or 'seconds'
+			end
+		}),
+		PulseDelay = Speed:CreateSlider({
+			Name = 'Pulse Delay',
+			Min = 0,
+			Max = 1,
+			Decimal = 100,
+			Darker = true,
+			Visible = false,
+			Suffix = function(val)
+				return val == 1 and 'second' or 'seconds'
+			end
+		}),
+		WallCheck = Speed:CreateToggle({
+			Name = 'Wall Check',
+			Default = true,
+			Darker = true,
+			Visible = false
+		}),
+		TPTiming = tick(),
+		rayCheck = RaycastParams.new()
+	}
+	Options.rayCheck.RespectCanCollide = true
+	CustomProperties = Speed:CreateToggle({
+		Name = 'Custom Properties',
+		Function = function()
+			if Speed.Enabled then
+				Speed:Toggle()
+				Speed:Toggle()
+			end
+		end,
+		Default = true
+	})
+	AutoJump = Speed:CreateToggle({
+		Name = 'AutoJump',
+		Function = function(callback)
+			AutoJumpCustom.Object.Visible = callback
+		end
+	})
+	AutoJumpCustom = Speed:CreateToggle({
+		Name = 'Custom Jump',
+		Function = function(callback)
+			AutoJumpValue.Object.Visible = callback
+		end,
+		Tooltip = 'Allows you to adjust the jump power',
+		Darker = true,
+		Visible = false
+	})
+	AutoJumpValue = Speed:CreateSlider({
+		Name = 'Jump Power',
+		Min = 1,
+		Max = 50,
+		Default = 30,
+		Darker = true,
+		Visible = false
+	})
+end)
+
+run(function()
+	local Chams
+	local Targets
+	local Mode
+	local FillColor
+	local OutlineColor
+	local FillTransparency
+	local OutlineTransparency
+	local Teammates
+	local Walls
+	local Reference = {}
+	local Folder = Instance.new('Folder')
+	Folder.Parent = vape.gui
+	
+	local function Added(ent)
+		if not Targets.Players.Enabled and ent.Player then return end
+		if not Targets.NPCs.Enabled and ent.NPC then return end
+		if Teammates.Enabled and (not ent.Targetable) and (not ent.Friend) then return end
+		if vape.ThreadFix then
+			setthreadidentity(8)
+		end
+	
+		if Mode.Value == 'Highlight' then
+			local cham = Instance.new('Highlight')
+			cham.Adornee = ent.Character
+			cham.DepthMode = Enum.HighlightDepthMode[Walls.Enabled and 'AlwaysOnTop' or 'Occluded']
+			cham.FillColor = entitylib.getEntityColor(ent) or Color3.fromHSV(FillColor.Hue, FillColor.Sat, FillColor.Value)
+			cham.OutlineColor = Color3.fromHSV(OutlineColor.Hue, OutlineColor.Sat, OutlineColor.Value)
+			cham.FillTransparency = FillTransparency.Value
+			cham.OutlineTransparency = OutlineTransparency.Value
+			cham.Parent = Folder
+			Reference[ent] = cham
+		else
+			local chams = {}
+			for _, v in ent.Character:GetChildren() do
+				if v:IsA('BasePart') and (ent.NPC or v.Name:find('Arm') or v.Name:find('Leg') or v.Name:find('Hand') or v.Name:find('Feet') or v.Name:find('Torso') or v.Name == 'Head') then
+					local box = Instance.new(v.Name == 'Head' and 'SphereHandleAdornment' or 'BoxHandleAdornment')
+					if v.Name == 'Head' then
+						box.Radius = 0.75
+					else
+						box.Size = v.Size
+					end
+					box.AlwaysOnTop = Walls.Enabled
+					box.Adornee = v
+					box.ZIndex = 0
+					box.Transparency = FillTransparency.Value
+					box.Color3 = entitylib.getEntityColor(ent) or Color3.fromHSV(FillColor.Hue, FillColor.Sat, FillColor.Value)
+					box.Parent = Folder
+					table.insert(chams, box)
+				end
+			end
+			Reference[ent] = chams
+		end
+	end
+	
+	local function Removed(ent)
+		if Reference[ent] then
+			if vape.ThreadFix then
+				setthreadidentity(8)
+			end
+			if type(Reference[ent]) == 'table' then
+				for _, v in Reference[ent] do
+					v:Destroy()
+				end
+				table.clear(Reference[ent])
+			else
+				Reference[ent]:Destroy()
+			end
+			Reference[ent] = nil
+		end
+	end
+	
+	Chams = vape.Categories.Render:CreateModule({
+		Name = 'Chams',
+		Function = function(callback)
+			if callback then
+				Chams:Clean(entitylib.Events.EntityRemoved:Connect(Removed))
+				Chams:Clean(entitylib.Events.EntityAdded:Connect(function(ent)
+					if Reference[ent] then
+						Removed(ent)
+					end
+					Added(ent)
+				end))
+				Chams:Clean(vape.Categories.Friends.ColorUpdate.Event:Connect(function()
+					for i, v in Reference do
+						local color = entitylib.getEntityColor(i) or Color3.fromHSV(FillColor.Hue, FillColor.Sat, FillColor.Value)
+						if type(v) == 'table' then
+							for _, v2 in v do v2.Color3 = color end
+						else
+							v.FillColor = color
+						end
+					end
+				end))
+				for _, v in entitylib.List do
+					if Reference[v] then
+						Removed(v)
+					end
+					Added(v)
+				end
+			else
+				for i in Reference do
+					Removed(i)
+				end
+			end
+		end,
+		Tooltip = 'Render players through walls'
+	})
+	Targets = Chams:CreateTargets({
+		Players = true,
+		Function = function()
+			if Chams.Enabled then
+				Chams:Toggle()
+				Chams:Toggle()
+			end
+		end
+		})
+	Mode = Chams:CreateDropdown({
+		Name = 'Mode',
+		List = {'Highlight', 'BoxHandles'},
+		Function = function(val)
+			OutlineColor.Object.Visible = val == 'Highlight'
+			OutlineTransparency.Object.Visible = val == 'Highlight'
+			if Chams.Enabled then
+				Chams:Toggle()
+				Chams:Toggle()
+			end
+		end
+	})
+	FillColor = Chams:CreateColorSlider({
+		Name = 'Color',
+		Function = function(hue, sat, val)
+			for i, v in Reference do
+				local color = entitylib.getEntityColor(i) or Color3.fromHSV(hue, sat, val)
+				if type(v) == 'table' then
+					for _, v2 in v do v2.Color3 = color end
+				else
+					v.FillColor = color
+				end
+			end
+		end
+	})
+	OutlineColor = Chams:CreateColorSlider({
+		Name = 'Outline Color',
+		DefaultSat = 0,
+		Function = function(hue, sat, val)
+			for i, v in Reference do
+				if type(v) ~= 'table' then
+					v.OutlineColor = entitylib.getEntityColor(i) or Color3.fromHSV(hue, sat, val)
+				end
+			end
+		end,
+		Darker = true
+	})
+	FillTransparency = Chams:CreateSlider({
+		Name = 'Transparency',
+		Min = 0,
+		Max = 1,
+		Default = 0.5,
+		Function = function(val)
+			for _, v in Reference do
+				if type(v) == 'table' then
+					for _, v2 in v do v2.Transparency = val end
+				else
+					v.FillTransparency = val
+				end
+			end
+		end,
+		Decimal = 10
+	})
+	OutlineTransparency = Chams:CreateSlider({
+		Name = 'Outline Transparency',
+		Min = 0,
+		Max = 1,
+		Default = 0.5,
+		Function = function(val)
+			for _, v in Reference do
+				if type(v) ~= 'table' then
+					v.OutlineTransparency = val
+				end
+			end
+		end,
+		Decimal = 10,
+		Darker = true
+	})
+	Walls = Chams:CreateToggle({
+		Name = 'Render Walls',
+		Function = function(callback)
+			for _, v in Reference do
+				if type(v) == 'table' then
+					for _, v2 in v do
+						v2.AlwaysOnTop = callback
+					end
+				else
+					v.DepthMode = Enum.HighlightDepthMode[callback and 'AlwaysOnTop' or 'Occluded']
+				end
+			end
+		end,
+		Default = true
+	})
+	Teammates = Chams:CreateToggle({
+		Name = 'Priority Only',
+		Function = function()
+			if Chams.Enabled then
+				Chams:Toggle()
+				Chams:Toggle()
+			end
+		end,
+		Default = true,
+		Tooltip = 'Hides teammates & non targetable entities'
+	})
+end)
+
+run(function()
+	local connections = {}
+	
+	vape.Categories.World:CreateModule({
+		Name = 'Anti-AFK',
+		Function = function(callback)
+			if callback then
+				for _, v in getconnections(lplr.Idled) do
+					table.insert(connections, v)
+					v:Disable()
+				end
+			else
+				for _, v in connections do
+					v:Enable()
+				end
+				table.clear(connections)
+			end
+		end,
+		Tooltip = 'Lets you stay ingame without getting kicked'
+	})
+end)
+
+run(function()
+	local StaffDetector
+	local Mode
+	local Profile
+	local Users
+	local Group
+	local Role
+	
+	local function getRole(plr, id)
+		local suc, res
+		for _ = 1, 3 do
+			suc, res = pcall(function()
+				return plr:GetRankInGroup(id)
+			end)
+			if suc then break end
+		end
+		return suc and res or 0
+	end
+	
+	local function getLowestStaffRole(roles)
+		local highest = math.huge
+		for _, v in roles do
+			local low = v.Name:lower()
+			if (low:find('admin') or low:find('mod') or low:find('dev')) and v.Rank < highest then
+				highest = v.Rank
+			end
+		end
+		return highest
+	end
+	
+	local function playerAdded(plr)
+		if not vape.Loaded then
+			repeat task.wait() until vape.Loaded
+		end
+	
+		local user = table.find(Users.ListEnabled, tostring(plr.UserId))
+		if user or getRole(plr, tonumber(Group.Value) or 0) >= (tonumber(Role.Value) or 1) then
+			notif('StaffDetector', 'Staff Detected ('..(user and 'blacklisted_user' or 'staff_role')..'): '..plr.Name, 60, 'alert')
+			whitelist.customtags[plr.Name] = {{text = 'GAME STAFF', color = Color3.new(1, 0, 0)}}
+	
+			if Mode.Value == 'Uninject' then
+				task.spawn(function()
+					vape:Uninject()
+				end)
+				game:GetService('StarterGui'):SetCore('SendNotification', {
+					Title = 'StaffDetector',
+					Text = 'Staff Detected\n'..plr.Name,
+					Duration = 60,
+				})
+			elseif Mode.Value == 'ServerHop' then
+				serverHop()
+			elseif Mode.Value == 'Profile' then
+				vape.Save = function() end
+				if vape.Profile ~= Profile.Value then
+					vape.Profile = Profile.Value
+					vape:Load(true, Profile.Value)
+				end
+			elseif Mode.Value == 'AutoConfig' then
+				vape.Save = function() end
+				for _, v in vape.Modules do
+					if v.Enabled then
+						v:Toggle()
+					end
+				end
+			end
+		end
+	end
+	
+	StaffDetector = vape.Categories.Utility:CreateModule({
+		Name = 'StaffDetector',
+		Function = function(callback)
+			if callback then
+				if Group.Value == '' or Role.Value == '' then
+					local placeinfo = {Creator = {CreatorTargetId = tonumber(Group.Value)}}
+					if Group.Value == '' then
+						placeinfo = marketplaceService:GetProductInfo(game.PlaceId)
+						if placeinfo.Creator.CreatorType ~= 'Group' then
+							local desc = placeinfo.Description:split('\n')
+							for _, str in desc do
+								local _, begin = str:find('roblox.com/groups/')
+								if begin then
+									local endof = str:find('/', begin + 1)
+									placeinfo = {Creator = {
+										CreatorType = 'Group',
+										CreatorTargetId = str:sub(begin + 1, endof - 1)
+									}}
+								end
+							end
+						end
+	
+						if placeinfo.Creator.CreatorType ~= 'Group' then
+							notif('StaffDetector', 'Automatic Setup Failed (no group detected)', 60, 'warning')
+							return
+						end
+					end
+	
+					local groupinfo = groupService:GetGroupInfoAsync(placeinfo.Creator.CreatorTargetId)
+					Group:SetValue(placeinfo.Creator.CreatorTargetId)
+					Role:SetValue(getLowestStaffRole(groupinfo.Roles))
+				end
+	
+				if Group.Value == '' or Role.Value == '' then
+					return
+				end
+	
+				StaffDetector:Clean(playersService.PlayerAdded:Connect(playerAdded))
+				for _, v in playersService:GetPlayers() do
+					task.spawn(playerAdded, v)
+				end
+			end
+		end,
+		Tooltip = 'Detects people with a staff rank ingame'
+	})
+	Mode = StaffDetector:CreateDropdown({
+		Name = 'Mode',
+		List = {'Uninject', 'ServerHop', 'Profile', 'AutoConfig', 'Notify'},
+		Function = function(val)
+			if Profile.Object then
+				Profile.Object.Visible = val == 'Profile'
+			end
+		end
+	})
+	Profile = StaffDetector:CreateTextBox({
+		Name = 'Profile',
+		Default = 'default',
+		Darker = true,
+		Visible = false
+	})
+	Users = StaffDetector:CreateTextList({
+		Name = 'Users',
+		Placeholder = 'player (userid)'
+	})
+	Group = StaffDetector:CreateTextBox({
+		Name = 'Group',
+		Placeholder = 'Group Id'
+	})
+	Role = StaffDetector:CreateTextBox({
+		Name = 'Role',
+		Placeholder = 'Role Rank'
+	})
+end)
+
+run(function()
+	local Disabler
+	
+	local function characterAdded(char)
+		for _, v in getconnections(char.RootPart:GetPropertyChangedSignal('CFrame')) do
+			hookfunction(v.Function, function() end)
+		end
+		for _, v in getconnections(char.RootPart:GetPropertyChangedSignal('Velocity')) do
+			hookfunction(v.Function, function() end)
+		end
+	end
+	
+	Disabler = vape.Categories.Utility:CreateModule({
+		Name = 'Disabler',
+		Function = function(callback)
+			if callback then
+				Disabler:Clean(entitylib.Events.LocalAdded:Connect(characterAdded))
+				if entitylib.isAlive then
+					characterAdded(entitylib.character)
+				end
+			end
+		end,
+		Tooltip = 'Disables GetPropertyChangedSignal detections for movement'
+	})
+end)
+
+run(function()
+	local HighJump
+	local Mode
+	local Value
+	local AutoDisable
+	
+	local function jump()
+		local state = entitylib.isAlive and entitylib.character.Humanoid:GetState() or nil
+	
+		if state == Enum.HumanoidStateType.Running or state == Enum.HumanoidStateType.Landed then
+			local root = entitylib.character.RootPart
+	
+			if Mode.Value == 'Velocity' then
+				entitylib.character.Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+				root.AssemblyLinearVelocity = Vector3.new(root.AssemblyLinearVelocity.X, Value.Value, root.AssemblyLinearVelocity.Z)
+			elseif Mode.Value == 'Impulse' then
+				entitylib.character.Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+				task.delay(0, function()
+					root:ApplyImpulse(Vector3.new(0, Value.Value - root.AssemblyLinearVelocity.Y, 0) * root.AssemblyMass)
+				end)
+			else
+				local start = math.max(Value.Value - entitylib.character.Humanoid.JumpHeight, 0)
+				repeat
+					root.CFrame += Vector3.new(0, start * 0.016, 0)
+					start = start - (workspace.Gravity * 0.016)
+					if Mode.Value == 'CFrame' then
+						task.wait()
+					end
+				until start <= 0
+			end
+		end
+	end
+	
+	HighJump = vape.Categories.Blatant:CreateModule({
+		Name = 'HighJump',
+		Function = function(callback)
+			if callback then
+				if AutoDisable.Enabled then
+					jump()
+					HighJump:Toggle()
+				else
+					HighJump:Clean(runService.RenderStepped:Connect(function()
+						if not inputService:GetFocusedTextBox() and inputService:IsKeyDown(Enum.KeyCode.Space) then
+							jump()
+						end
+					end))
+				end
+			end
+		end,
+		ExtraText = function()
+			return Mode.Value
+		end,
+		Tooltip = 'Lets you jump higher'
+	})
+	Mode = HighJump:CreateDropdown({
+		Name = 'Mode',
+		List = {'Impulse', 'Velocity', 'CFrame', 'Instant'},
+		Tooltip = 'Velocity - Uses smooth movement to boost you upward\nImpulse - Same as velocity while using forces instead\nCFrame - Directly adjusts the position upward\nInstant - Teleports you to the peak of the jump'
+	})
+	Value = HighJump:CreateSlider({
+		Name = 'Velocity',
+		Min = 1,
+		Max = 150,
+		Default = 50,
+		Suffix = function(val)
+			return val == 1 and 'stud' or 'studs'
+		end
+	})
+	AutoDisable = HighJump:CreateToggle({
+		Name = 'Auto Disable',
+		Default = true
+	})
+end)
+
+run(function()
+    local OneTimeTackle
+
+    OneTimeTackle = vape.Categories.Combat:CreateModule({
+        Name = "SlideTackleExploit",
+        Tooltip = "Fires SlideTackleHit once",
+        Function = function(callback)
+            if callback then
+                OneTimeTackle:Toggle()
+
+                local ReplicatedStorage = game:GetService("ReplicatedStorage")
+                local Workspace = game:GetService("Workspace")
+
+                local remote = ReplicatedStorage:FindFirstChild("Remotes") and ReplicatedStorage.Remotes:FindFirstChild("SlideTackleHit")
+                local ball = Workspace:WaitForChild("Temp"):FindFirstChild("Ball")
+
+                if remote and ball then
+                    local args = {
+                        ball,
+                        Vector3.new(-16.084280014038086, 5, 49.8039436340332),
+                        0.12758135795593262,
+                        true,
+                        "Left",
+                        Vector3.new(182.63217163085938, 10.629911422729492, -169.33090209960938)
+                    }
+
+                    pcall(function()
+                        remote:FireServer(unpack(args))
+                    end)
+                else
+                    vape:CreateNotification("OneTimeTackle", "Missing remote or ball.", 5, "alert")
+                end
+            end
+        end
+    })
+end)
+																								
+run(function()
     local TEAM_KEYWORDS = {
         ["spain"] = "Spain",
         ["mexico"] = "Mexico",
