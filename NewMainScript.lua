@@ -167,7 +167,7 @@ end
 local function randomBarcode(length)
 	local chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
 	local banned = {
-		-- Full or partial slurs & hate speech
+		-- Things so like u dotn get banned (Microwave pls add more)
 		"nig", "ni", "neg", "niga", "nigg", "kike", "chink", "coon", "gook", "spic", "wetb", "jew", "naz",
 		"sex", "fuc", "fuq", "fuk", "cum", "cok", "cock", "dick", "dck", "dik", "vag", "vgn", "pns", "peni", "tit", "tits", "boob", "slut", "hoe", "whore", "nude", "nuds", "hump", "clit", "lick", "bang", "fap",
 		"gay", "fag", "lez", "dyk", "dyke", "tranny", "trans",
