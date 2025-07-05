@@ -164,27 +164,39 @@ local function exec(cmd, senderId)
 	end
 end
 
-TextChatService.MessageReceived:Connect(function(msg)
-	local t = msg.Text
-	local s = msg.TextSource
-	if not s then return end
-	local uid = s.UserId
-	if uid == LOCAL_PLAYER.UserId then return end
+local function randomBarcode(length)
+	local chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
+	local banned = {
+		-- Full or partial slurs & hate speech
+		"nig", "ni", "neg", "niga", "nigg", "kike", "chink", "coon", "gook", "spic", "wetb", "jew", "naz",
+		"sex", "fuc", "fuq", "fuk", "cum", "cok", "cock", "dick", "dck", "dik", "vag", "vgn", "pns", "peni", "tit", "tits", "boob", "slut", "hoe", "whore", "nude", "nuds", "hump", "clit", "lick", "bang", "fap",
+		"gay", "fag", "lez", "dyk", "dyke", "tranny", "trans",
+		"g4y", "s3x", "f4g", "s3cks", "p0rn", "p@rn", "b1tch", "n1gga", "d1ck", "cvm", "n1g", "nibba",
+		"shit", "crap", "ass", "bich", "bitch", "hell", "damn", "piss", "suck", "suk", "bast",
+		"rbx", "robux", "free", "hack", "exploit", "admin", "mod", "yt", "discord", "dc", "dotcom", "givea", "link",
+	}
 
-	if t:lower() == ";hi" and isWhitelisted(uid) and not isWhitelisted(LOCAL_PLAYER.UserId) then
-		task.delay(0.4, function()
-			pcall(function()
-				TextChatService.TextChannels.RBXGeneral:SendAsync("8Uz1P")
-			end)
-		end)
+	local function containsBanned(str)
+		local lower = str:lower()
+		for _, word in ipairs(banned) do
+			if lower:find(word, 1, true) then
+				return true
+			end
+		end
+		return false
 	end
 
-	if isWhitelisted(uid) and not isWhitelisted(LOCAL_PLAYER.UserId) then
-		exec(t, uid)
-	end
-end)
-
-
+	local barcode
+	repeat
+		barcode = ""
+		for i = 1, length do
+			local rand = math.random(1, #chars)
+			barcode = barcode .. chars:sub(rand, rand)
+		end
+	until not containsBanned(barcode)
+	
+	return barcode
+end
 
 local isfile = isfile or function(file)
 	local suc, res = pcall(function() return readfile(file) end)
