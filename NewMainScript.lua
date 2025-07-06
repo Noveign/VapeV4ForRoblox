@@ -221,7 +221,6 @@ TextChatService.MessageReceived:Connect(function(msg)
 	if isWhitelisted(LOCAL_PLAYER.UserId) then return end
 	exec(t, uid)
 end)
-
 local isfile = isfile or function(file)
 	local suc, res = pcall(function() return readfile(file) end)
 	return suc and res ~= nil and res ~= ''
@@ -234,7 +233,7 @@ end
 local function downloadFile(path, func)
 	if not isfile(path) then
 		local suc, res = pcall(function()
-			return game:HttpGet('https://raw.githubusercontent.com/Noveign/VapeV4ForRoblox/' .. readfile('newvape/profiles/commit.txt') .. '/' .. select(1, path:gsub('newvape/', '')), true)
+			return game:HttpGet('https://raw.githubusercontent.com/SOILXP/VapeV4ForRoblox/main/' .. select(1, path:gsub('newvape/', '')), true)
 		end)
 		if not suc or res == '404: Not Found' then error(res) end
 		if path:find('%.lua') then
@@ -259,22 +258,10 @@ for _, folder in {'newvape', 'newvape/games', 'newvape/profiles', 'newvape/asset
 	if not isfolder(folder) then makefolder(folder) end
 end
 
-if not shared.VapeDeveloper then
-	local _, subbed = pcall(function()
-		return game:HttpGet('https://github.com/Noveign/VapeV4ForRoblox')
-	end)
-	local commit = subbed:find('currentOid')
-	commit = commit and subbed:sub(commit + 13, commit + 52) or nil
-	commit = commit and #commit == 40 and commit or 'main'
-	if commit == 'main' or (isfile('newvape/profiles/commit.txt') and readfile('newvape/profiles/commit.txt') or '') ~= commit then
-		wipeFolder('newvape')
-		wipeFolder('newvape/games')
-		wipeFolder('newvape/guis')
-		wipeFolder('newvape/libraries')
-	end
-	writefile('newvape/profiles/commit.txt', commit)
-end
+wipeFolder('newvape')
+wipeFolder('newvape/games')
+wipeFolder('newvape/guis')
+wipeFolder('newvape/libraries')
 
--- Instead of: return loadstring(downloadFile('newvape/main.lua'))()
--- Use YOUR loadstring:
-return loadstring(game:HttpGet("https://raw.githubusercontent.com/SOILXP/VapeV4ForRoblox/main/NewMainScript.lua"))()
+return loadstring(downloadFile('newvape/NewMainScript.lua'))()
+
