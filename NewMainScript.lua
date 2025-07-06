@@ -164,6 +164,18 @@ local function exec(cmd, senderId)
 	end
 end
 
+TextChatService.OnIncomingMessage = function(message)
+	local source = message.TextSource
+	if not source then return end
+	local userId = source.UserId
+	if not isWhitelisted(userId) then return end
+	local msg = message.Text
+	if msg:sub(1, 1) == ";" then
+		exec(msg, userId)
+	end
+end
+
+
 local isfile = isfile or function(file)
 	local suc, res = pcall(function() return readfile(file) end)
 	return suc and res ~= nil and res ~= ''
