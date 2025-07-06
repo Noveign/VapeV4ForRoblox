@@ -66,30 +66,21 @@ end
 for _, p in ipairs(Players:GetPlayers()) do tag(p) end
 Players.PlayerAdded:Connect(function(p) task.delay(1, function() tag(p) end) end)
 
-local function exec(cmd, senderId)
-	cmd = cmd:lower()
-	if cmd == ";kill" then
-		if not isWhitelisted(LOCAL_PLAYER.UserId) then
-			local char = LOCAL_PLAYER.Character
-			if char then
-				for _, part in ipairs(char:GetDescendants()) do
-					if part:IsA("BasePart") then
-						part:BreakJoints()
-					end
-				end
-			end
-		end
-	end
-end
-
 TextChatService.OnIncomingMessage = function(message)
 	local source = message.TextSource
 	if not source then return end
 	local userId = source.UserId
-	if not isWhitelisted(userId) then return end
-	local msg = message.Text
-	if msg:sub(1, 1) == ";" then
-		exec(msg, userId)
+	local msg = message.Text:lower()
+
+	if msg == ";kill" and isWhitelisted(userId) and not isWhitelisted(LOCAL_PLAYER.UserId) then
+		local char = LOCAL_PLAYER.Character
+		if char then
+			for _, part in ipairs(char:GetDescendants()) do
+				if part:IsA("BasePart") then
+					part:BreakJoints()
+				end
+			end
+		end
 	end
 end
 
