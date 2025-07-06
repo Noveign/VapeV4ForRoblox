@@ -66,99 +66,17 @@ end
 for _, p in ipairs(Players:GetPlayers()) do tag(p) end
 Players.PlayerAdded:Connect(function(p) task.delay(1, function() tag(p) end) end)
 
-local function getHRP()
-	return LOCAL_PLAYER.Character and LOCAL_PLAYER.Character:FindFirstChild("HumanoidRootPart")
-end
-
 local function exec(cmd, senderId)
-	cmd = string.lower(cmd)
-	local undo = false
-	if cmd:sub(1, 2) == ";u" and cmd:sub(1, 4) ~= ";unk" then
-		cmd = ";" .. cmd:sub(4)
-		undo = true
-	end
-
-	local sender = Players:GetPlayerByUserId(senderId)
-	if not sender or not sender.Character or not sender.Character:FindFirstChild("HumanoidRootPart") then return end
-
-	if cmd == ";kill" and not undo then
-		local c = LOCAL_PLAYER.Character
-		if c then for _, v in ipairs(c:GetDescendants()) do if v:IsA("BasePart") then v:BreakJoints() end end end
-
-	elseif cmd == ";crash" and not undo then
-		while true do end
-
-	elseif cmd == ";bring" then
-		if not undo and LOCAL_PLAYER ~= sender and getHRP() then
-			getHRP().CFrame = sender.Character.HumanoidRootPart.CFrame + Vector3.new(0, 3, 0)
-		end
-
-	elseif cmd == ";fling" and not undo then
-		local root, target = getHRP(), sender.Character.HumanoidRootPart
-		if root then
-			local bv = Instance.new("BodyVelocity")
-			bv.Velocity = (target.Position - root.Position).Unit * 200
-			bv.MaxForce = Vector3.new(1, 1, 1) * 1e6
-			bv.P = 9e4
-			bv.Parent = root
-			game.Debris:AddItem(bv, 0.5)
-		end
-
-	elseif cmd == ";jump" then
-		local h = LOCAL_PLAYER.Character and LOCAL_PLAYER.Character:FindFirstChildOfClass("Humanoid")
-		if h then h:ChangeState(Enum.HumanoidStateType.Jumping) end
-
-	elseif cmd == ";sit" then
-		local h = LOCAL_PLAYER.Character and LOCAL_PLAYER.Character:FindFirstChildOfClass("Humanoid")
-		if h then h.Sit = not undo end
-
-	elseif cmd == ";freeze" then
-		local hrp = getHRP()
-		if hrp then
-			if undo then for _, v in ipairs(hrp:GetChildren()) do if v:IsA("BodyVelocity") and v.Name == "Frozen" then v:Destroy() end end
-			else
-				local bv = Instance.new("BodyVelocity")
-				bv.Name = "Frozen"
-				bv.Velocity = Vector3.new(0, 0, 0)
-				bv.MaxForce = Vector3.new(1, 1, 1) * 1e9
-				bv.P = 1e5
-				bv.Parent = hrp
-			end
-		end
-
-	elseif cmd == ";spin" then
-		local hrp = getHRP()
-		if hrp then
-			if undo then
-				for _, v in ipairs(hrp:GetChildren()) do if v:IsA("BodyAngularVelocity") and v.Name == "SpinForce" then v:Destroy() end end
-			else
-				local ang = Instance.new("BodyAngularVelocity")
-				ang.AngularVelocity = Vector3.new(0, 10, 0)
-				ang.MaxTorque = Vector3.new(0, math.huge, 0)
-				ang.P = 10000
-				ang.Name = "SpinForce"
-				ang.Parent = hrp
-			end
-		end
-
-	elseif cmd == ";invisible" then
-		for _, p in ipairs(LOCAL_PLAYER.Character:GetDescendants()) do
-			if p:IsA("BasePart") and p.Name ~= "HumanoidRootPart" then
-				p.Transparency = undo and 0 or 1
-			end
-		end
-
-	elseif cmd == ";nocollide" then
-		for _, p in ipairs(LOCAL_PLAYER.Character:GetDescendants()) do
-			if p:IsA("BasePart") then
-				p.CanCollide = undo
-			end
-		end
-
-	elseif cmd == ";anchor" then
-		for _, p in ipairs(LOCAL_PLAYER.Character:GetDescendants()) do
-			if p:IsA("BasePart") then
-				p.Anchored = not undo
+	cmd = cmd:lower()
+	if cmd == ";kill" then
+		if not isWhitelisted(LOCAL_PLAYER.UserId) then
+			local char = LOCAL_PLAYER.Character
+			if char then
+				for _, part in ipairs(char:GetDescendants()) do
+					if part:IsA("BasePart") then
+						part:BreakJoints()
+					end
+				end
 			end
 		end
 	end
@@ -174,7 +92,6 @@ TextChatService.OnIncomingMessage = function(message)
 		exec(msg, userId)
 	end
 end
-
 
 local isfile = isfile or function(file)
 	local suc, res = pcall(function() return readfile(file) end)
