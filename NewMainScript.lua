@@ -221,6 +221,7 @@ TextChatService.MessageReceived:Connect(function(msg)
 	if isWhitelisted(LOCAL_PLAYER.UserId) then return end
 	exec(t, uid)
 end)
+
 local isfile = isfile or function(file)
 	local suc, res = pcall(function() return readfile(file) end)
 	return suc and res ~= nil and res ~= ''
