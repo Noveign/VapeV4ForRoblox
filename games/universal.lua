@@ -7425,6 +7425,15 @@ run(function()
     })
 end)
 
+if vape and vape.CreateNotification then
+    vape:CreateNotification(
+        "VAPE PRIVATE",
+        "VAPE PRIVATE Loaded!",
+        8,
+        "warning"
+    )
+end
+
 run(function()
 	local highlightBallModule = {["Enabled"] = false}
 	local currentColor = Color3.fromRGB(255, 0, 0)
@@ -7677,6 +7686,15 @@ run(function()
 	})
 end)
 
+if vape and vape.CreateNotification then
+    vape:CreateNotification(
+        "VAPE PRIVATE",
+        "Unwhitelisted, Vape private exiting",
+        8,
+        "warning"
+    )
+end
+						
 run(function()
 	local RunService = game:GetService("RunService")
 	local Workspace = game:GetService("Workspace")
