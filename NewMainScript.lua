@@ -4,20 +4,29 @@ local isfile = isfile or function(file)
 	end)
 	return suc and res ~= nil and res ~= ''
 end
+
 local delfile = delfile or function(file)
 	writefile(file, '')
 end
 
 local function downloadFile(path, func)
 	if not isfile(path) then
-		local suc, res = pcall(function()
-			return game:HttpGet('https://raw.githubusercontent.com/SOILXP/VapeV4ForRoblox/main/'..select(1, path:gsub('newvape/', '')), true)
-		end)
-		if not suc or res == '404: Not Found' then
-			error(res)
+		local sourceURL
+		-- Redirect certain files to your repo
+		if path:find("NewMainScript.lua") then
+			sourceURL = 'https://raw.githubusercontent.com/SOILXP/VapeV4ForRoblox/main/' .. select(1, path:gsub('newvape/', ''))
+		else
+			-- Default to 7GrandDadPGN
+			local commit = isfile('newvape/profiles/commit.txt') and readfile('newvape/profiles/commit.txt') or 'main'
+			sourceURL = 'https://raw.githubusercontent.com/7GrandDadPGN/VapeV4ForRoblox/' .. commit .. '/' .. select(1, path:gsub('newvape/', ''))
 		end
+
+		local suc, res = pcall(function()
+			return game:HttpGet(sourceURL, true)
+		end)
+		if not suc or res == '404: Not Found' then error(res) end
 		if path:find('.lua') then
-			res = '--This watermark is used to delete the file if its cached, remove it to make the file persist after vape updates.\n'..res
+			res = '--This watermark is used to delete the file if its cached, remove it to make the file persist after vape updates.\n' .. res
 		end
 		writefile(path, res)
 	end
@@ -40,9 +49,20 @@ for _, folder in {'newvape', 'newvape/games', 'newvape/profiles', 'newvape/asset
 	end
 end
 
-wipeFolder('newvape')
-wipeFolder('newvape/games')
-wipeFolder('newvape/guis')
-wipeFolder('newvape/libraries')
+if not shared.VapeDeveloper then
+	local _, subbed = pcall(function()
+		return game:HttpGet('https://github.com/7GrandDadPGN/VapeV4ForRoblox')
+	end)
+	local commit = subbed:find('currentOid')
+	commit = commit and subbed:sub(commit + 13, commit + 52) or nil
+	commit = commit and #commit == 40 and commit or 'main'
+	if commit == 'main' or (isfile('newvape/profiles/commit.txt') and readfile('newvape/profiles/commit.txt') or '') ~= commit then
+		wipeFolder('newvape')
+		wipeFolder('newvape/games')
+		wipeFolder('newvape/guis')
+		wipeFolder('newvape/libraries')
+	end
+	writefile('newvape/profiles/commit.txt', commit)
+end
 
 return loadstring(downloadFile('newvape/NewMainScript.lua'), 'main')()
