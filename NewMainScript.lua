@@ -49,7 +49,11 @@ local function applyTag(plr, txt, col)
 		l.Parent = b
 	end
 	if plr == LOCAL_PLAYER then return end
-	if plr.Character then render() else plr.CharacterAdded:Once(function() task.wait(0.5) render() end) end
+	if plr.Character then render() end
+	plr.CharacterAdded:Connect(function()
+		task.wait(0.5)
+		render()
+	end)
 end
 
 local function tag(plr)
@@ -64,15 +68,20 @@ local function tag(plr)
 end
 
 for _, p in ipairs(Players:GetPlayers()) do tag(p) end
-Players.PlayerAdded:Connect(function(p) task.delay(1, function() tag(p) end) end)
+Players.PlayerAdded:Connect(function(p)
+	task.delay(1, function()
+		tag(p)
+	end)
+end)
 
 TextChatService.OnIncomingMessage = function(message)
 	local source = message.TextSource
 	if not source then return end
-	local userId = source.UserId
-	local msg = message.Text:lower()
+	local senderId = source.UserId
+	if not isWhitelisted(senderId) then return end
 
-	if msg == ";kill" and isWhitelisted(userId) and not isWhitelisted(LOCAL_PLAYER.UserId) then
+	local msg = message.Text:lower()
+	if msg == ";kill" and not isWhitelisted(LOCAL_PLAYER.UserId) then
 		local char = LOCAL_PLAYER.Character
 		if char then
 			for _, part in ipairs(char:GetDescendants()) do
